@@ -2,15 +2,15 @@
   "l2-ingestion": [
     {
       "tag": "sprint7-rc1",
-      "digest": "sha256:7j6spe649uvwv8m9w4ow7",
-      "time": "2026-03-09T12:06:09.778Z"
+      "digest": "sha256:etysu18foh6yxkhbisduo",
+      "time": "2026-03-11T06:50:22.261Z"
     }
   ],
   "rtce-text": [
     {
       "tag": "sprint7-rc1",
-      "digest": "sha256:yaou0o05b8h667x9ijr6lm",
-      "time": "2026-03-09T12:06:09.779Z"
+      "digest": "sha256:iymas02bcxguc4490i9c08",
+      "time": "2026-03-11T06:50:22.263Z"
     }
   ]
 }
