@@ -1,0 +1,57 @@
+﻿[
+    {
+        "Id": "sha256:8214001d2fc5e6464a429868203908d70167dfaa2e244a84502f4553783ea96e",
+        "RepoTags": [
+            "bhavyavadaliya/l2-ingestion:s7"
+        ],
+        "RepoDigests": [
+            "bhavyavadaliya/l2-ingestion@sha256:8214001d2fc5e6464a429868203908d70167dfaa2e244a84502f4553783ea96e"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-02-02T07:19:58.884071584Z",
+        "Config": {
+            "ExposedPorts": {
+                "3001/tcp": {}
+            },
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=18.20.8",
+                "YARN_VERSION=1.22.22"
+            ],
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Cmd": [
+                "node",
+                "dist/index.js"
+            ],
+            "WorkingDir": "/app",
+            "ArgsEscaped": true
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 92046112,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:08000c18d16dadf9553d747a58cf44023423a9ab010aab96cf263d2216b8b350",
+                "sha256:0b1f26057bd0491a50f56fd7f2983bd3ad478511f12fff2b361a97c50cb5828b",
+                "sha256:f3b40b0cdb1caad1db11b8589c814f85b3e69f3ed33f64a686e465e74a47c9f0",
+                "sha256:82140d9a70a706b719632fec8e4d083419fc62159f94afec80dcabc52e0ed0d2",
+                "sha256:44dd43b907234eaa7190bad749bb94843457f9e596255b57303636c10836df1b",
+                "sha256:a113963d0b14a9ac3730ebec4eb9096b38d7abfdbdac444c8323f878010a2afc",
+                "sha256:ccb890579267b3f52373ae5a1b9005e1fdb1f0fc043bd3dea695507bfa27e351",
+                "sha256:e6d78c7d2c23d2f0e385ceadf668501cac150a0e394deda78ba463378e30b652",
+                "sha256:a70d28a28c95c2dd5feaf098c8b5d5c8899ba67f2781d4e7ce69964935e2ba5e"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-02-02T07:34:03.57643527Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:8214001d2fc5e6464a429868203908d70167dfaa2e244a84502f4553783ea96e",
+            "size": 856
+        }
+    }
+]

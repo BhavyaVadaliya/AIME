@@ -1,0 +1,22 @@
+{
+  "id": "gima-004",
+  "name": "Global Integrative Medicine Academy",
+  "slug": "gima",
+  "region": ["CA", "US"],
+  "platforms": ["tiktok", "instagram"],
+  "mode": "merged",
+  "landingUrl": "https://www.integrativemedicineacademy.com/",
+  "commentTone": "educational",
+  "signals": {
+    "focus": [
+      "health_professional_education",
+      "continuing_education",
+      "evidence_based_nutrition",
+      "lifestyle_medicine"
+    ],
+    "excluded": [
+      "pure_weight_loss_gimmicks",
+      "non_professional_self_help_only"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "partner": "Adeeva",
+  "partner_id": "adeeva-001",
+  "brand_persona": "adeeva-hybrid",
+  "keywords": [
+    "adeeva",
+    "nutraceuticals",
+    "clinician",
+    "evidencebased",
+    "functionalhealth",
+    "practitioner"
+  ],
+  "hashtags": [
+    "#adeeva",
+    "#integrativehealth",
+    "#functionalmedicine",
+    "#clinicalnutrition"
+  ],
+  "routing_cluster": "adeeva-core",
+  "campaigns": [
+    {
+      "campaign_id": "adeeva-demo-001",
+      "description": "hybrid-stage activation (practitioners + advanced consumers)",
+      "active": true
+    }
+  ]
+}

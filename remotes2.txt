@@ -1,0 +1,2 @@
+﻿origin	https://github.com/BhavyaVadaliya/aime-demo1.git (fetch)
+origin	https://github.com/BhavyaVadaliya/aime-demo1.git (push)

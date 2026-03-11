@@ -1,0 +1,10 @@
+﻿node_modules/
+dist/
+.env
+*.log
+harness_output.txt
+staging_harness_pass.txt
+l2_digest.txt
+rtce_digest.txt
+l2_id.txt
+rtce_id.txt

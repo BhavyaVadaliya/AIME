@@ -1,0 +1,26 @@
+{
+  "partner": "Allmax",
+  "partner_id": "allmax-001",
+  "brand_persona": "allmax-default",
+  "keywords": [
+    "allmax",
+    "allmaxnutrition",
+    "allmaxsupplements",
+    "allmaxtraining",
+    "aimeallmax"
+  ],
+  "hashtags": [
+    "#allmax",
+    "#allmaxnation",
+    "#allmaxarmy",
+    "#allmaxfamily"
+  ],
+  "routing_cluster": "allmax-core",
+  "campaigns": [
+    {
+      "campaign_id": "allmax-demo-001",
+      "description": "initial partner staging test",
+      "active": true
+    }
+  ]
+}

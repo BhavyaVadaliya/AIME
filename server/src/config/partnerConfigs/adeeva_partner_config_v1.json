@@ -1,0 +1,14 @@
+{
+  "id": "adeeva-001",
+  "name": "Adeeva",
+  "slug": "adeeva",
+  "region": ["CA"],
+  "platforms": ["tiktok", "instagram"],
+  "mode": "standard",
+  "landingUrl": "https://www.adeeva.com/",
+  "commentTone": "educational",
+  "signals": {
+    "focus": ["evidence_based_nutrition", "clinical_support"],
+    "excluded": ["purely_fitness_only"]
+  }
+}

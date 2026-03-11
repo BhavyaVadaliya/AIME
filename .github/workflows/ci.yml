@@ -1,0 +1,73 @@
+name: Sprint 7 Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # Service L2
+      - name: Install L2
+        run: cd services/l2-ingestion && npm install
+      - name: Test L2
+        run: cd services/l2-ingestion && npm test
+      - name: Build L2
+        run: cd services/l2-ingestion && npm run build
+
+      # Service RTCE
+      - name: Install RTCE
+        run: cd services/rtce-text && npm install
+      - name: Test RTCE
+        run: cd services/rtce-text && npm test
+      - name: Build RTCE
+        run: cd services/rtce-text && npm run build
+
+      # Harness
+      - name: Install Harness
+        run: cd harness && npm install
+      
+      # Integration Test (Local in CI)
+      - name: Start Services & Run Harness
+        run: |
+          # Start L2 in background
+          cd services/l2-ingestion && npm run start &
+          L2_PID=$!
+          
+          # Start RTCE in background
+          cd services/rtce-text && npm run start &
+          RTCE_PID=$!
+          
+          # Wait for boot
+          sleep 10
+          
+          # Run Harness
+          cd harness && npm test
+          
+          # Cleanup
+          kill $L2_PID $RTCE_PID
+
+      # Docker Build (Producer of Artifacts)
+      - name: Build Docker L2
+        run: |
+          cd services/l2-ingestion
+          docker build -t l2-ingestion:${{ github.sha }} .
+          echo "L2 Artifact Digest:"
+          docker images --no-trunc --quiet l2-ingestion:${{ github.sha }}
+
+      - name: Build Docker RTCE
+        run: |
+          cd services/rtce-text
+          docker build -t rtce-text:${{ github.sha }} .
+          echo "RTCE Artifact Digest:"
+          docker images --no-trunc --quiet rtce-text:${{ github.sha }}

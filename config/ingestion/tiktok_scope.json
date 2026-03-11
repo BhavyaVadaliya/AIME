@@ -1,0 +1,20 @@
+{
+    "max_signals_per_batch": 25,
+    "hashtags": [
+        "gimenutrition",
+        "nutritioncertification"
+    ],
+    "accounts": [],
+    "fields": [
+        "id",
+        "createTime",
+        "text",
+        "author",
+        "stats",
+        "videoUrl"
+    ],
+    "rate_limit_guardrails": {
+        "min_remaining": 5,
+        "backoff_seconds": 60
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "l2-ingestion": [
+    {
+      "tag": "sprint7-rc1",
+      "digest": "sha256:7j6spe649uvwv8m9w4ow7",
+      "time": "2026-03-09T12:06:09.778Z"
+    }
+  ],
+  "rtce-text": [
+    {
+      "tag": "sprint7-rc1",
+      "digest": "sha256:yaou0o05b8h667x9ijr6lm",
+      "time": "2026-03-09T12:06:09.779Z"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "allmax-001",
+  "name": "Allmax",
+  "slug": "allmax",
+  "region": ["CA", "US"],
+  "platforms": ["tiktok", "instagram"],
+  "mode": "standard",
+  "landingUrl": "https://allmaxnutrition.com",
+  "commentTone": "motivational",
+  "signals": {
+    "focus": ["gym_lifestyle", "training_content"],
+    "excluded": ["medical_diagnosis"]
+  }
+}

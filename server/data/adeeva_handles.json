@@ -1,0 +1,142 @@
+[
+  {
+    "creator_handle": "@dr_lisafunctional",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_01",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@functionalfit_james",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_lifestyle_voice_02",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@thewellnesspharmacist",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_02",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@biohacker_mom",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_03",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@holisticcoach_jade",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_04",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@dr_nutrition_md",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_03",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@cleanlivinglab",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_05",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@clinicalvibes",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_04",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@realnutritiontalks",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_06",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@evidencefit",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_07",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@gutbalance_clinic",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_05",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@thewellmethod",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_08",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@plantbased_science",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_09",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@nurseintegrative",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_06",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@longevityinsight",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_10",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@theresearchrd",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_07",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@pureperformancehealth",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_08",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@wellnessdecoded",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_11",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@clinicalshift",
+    "campaign_id": "ADEEVA-CA-001",
+    "assigned_cluster": "01",
+    "comment_profile": "adeeva_practitioner_voice_09",
+    "status": "Active"
+  },
+  {
+    "creator_handle": "@smartnutritionlife",
+    "campaign_id": "ADEEVA-CA-002",
+    "assigned_cluster": "02",
+    "comment_profile": "adeeva_lifestyle_voice_12",
+    "status": "Active"
+  }
+]

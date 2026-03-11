@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  l2-ingestion:
+    build:
+      context: ./services/l2-ingestion
+      dockerfile: Dockerfile
+    image: l2-ingestion:sprint7-staging
+    ports:
+      - "8081:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=staging
+      - LOG_LEVEL=info
+    restart: always
+
+  rtce-text:
+    build:
+      context: ./services/rtce-text
+      dockerfile: Dockerfile
+    image: rtce-text:sprint7-staging
+    ports:
+      - "8082:3002"
+    environment:
+      - PORT=3002
+      - NODE_ENV=staging
+      # Secrets would be injected here in real CI/CD
+      - POLICY_VERSION=v1.0-frozen
+    restart: always
