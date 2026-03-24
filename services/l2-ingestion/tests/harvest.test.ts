@@ -1,6 +1,31 @@
 import { runTikTokHarvest } from '../src/ingestion/tiktok/harvest';
 import { normalizeTikTokItem } from '../src/ingestion/tiktok/normalize';
 
+// Mock ApifyClient
+jest.mock('apify-client', () => {
+    return {
+        ApifyClient: jest.fn().mockImplementation(() => {
+            return {
+                actor: jest.fn().mockReturnThis(),
+                call: jest.fn().mockResolvedValue({ defaultDatasetId: 'test-dataset' }),
+                dataset: jest.fn().mockReturnThis(),
+                listItems: jest.fn().mockResolvedValue({
+                    items: Array(30).fill(null).map((_, i) => ({
+                        id: `tk-${i}`,
+                        videoDescription: i === 1 ? '' : `Test post ${i} about #nutrition`,
+                        authorMeta: { name: `user-${i}` },
+                        createTime: 1710243600,
+                        hashtags: [{ name: 'nutrition' }],
+                        webVideoUrl: `https://tiktok.com/@user-${i}/video/${i}`,
+                        diggCount: 100,
+                        commentCount: 10
+                    }))
+                })
+            };
+        })
+    };
+});
+
 describe('TikTok Harvester and Normalizer', () => {
     let mockConsoleLog: jest.SpyInstance;
 
@@ -12,39 +37,48 @@ describe('TikTok Harvester and Normalizer', () => {
         mockConsoleLog.mockRestore();
     });
 
-    test('normalizer should output canonical L2IngestRequest', () => {
+    test('normalizer should output canonical AIME Signal Object in metadata', () => {
         const raw = {
             id: '123',
-            text: 'Hello tiktok',
-            author: 'someone'
+            videoDescription: 'Hello tiktok #clinicalnutrition',
+            authorMeta: { name: 'dietitian_jane' },
+            createTime: 1710243600,
+            hashtags: [{ name: 'clinicalnutrition' }],
+            webVideoUrl: 'https://tiktok.com/v/123',
+            diggCount: 150,
+            commentCount: 20
         };
 
         const result = normalizeTikTokItem(raw);
         expect(result.signal_id).toBe('123');
         expect(result.source).toBe('tiktok');
-        expect(result.raw_text).toBe('Hello tiktok');
-        expect(result.metadata?.lang).toBe('en');
+        expect(result.raw_text).toBe('Hello tiktok #clinicalnutrition');
+        
+        const meta = result.metadata;
+        expect(meta?.author).toBe('dietitian_jane');
+        expect(meta?.tags).toContain('clinicalnutrition');
+        expect(meta?.metrics.likes).toBe(150);
+        expect(meta?.source_url).toBe('https://tiktok.com/v/123');
     });
 
-    test('normalizer should fail if text is empty', () => {
+    test('normalizer should fail if videoDescription is empty', () => {
         const badRaw = {
             id: '123',
-            text: '',
+            videoDescription: '',
         };
 
-        expect(() => normalizeTikTokItem(badRaw)).toThrow('Missing required field: text');
+        expect(() => normalizeTikTokItem(badRaw)).toThrow('Missing required field: text (videoDescription)');
     });
 
     test('harvester enforces max 25 items cap', async () => {
         const batch = await runTikTokHarvest();
-        // Since config lists max_signals_per_batch: 25, we expect 25
+        // Since config lists max_signals_per_batch: 25
         expect(batch.length).toBe(25);
     });
 
     test('harvester records rejected logs on bad records', async () => {
         await runTikTokHarvest();
 
-        // Find if any console log has event tiktok_harvest_item with status rejected
         const rejectedLogs = mockConsoleLog.mock.calls.filter(args => {
             const parsed = JSON.parse(args[0]);
             return parsed.event === 'tiktok_harvest_item' && parsed.ingestion_status === 'rejected';

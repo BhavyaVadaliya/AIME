@@ -1,10 +1,20 @@
 {
     "max_signals_per_batch": 25,
     "hashtags": [
-        "gimenutrition",
-        "nutritioncertification"
+        "nutritioneducation",
+        "clinicalnutrition",
+        "dietitian",
+        "nutritioncourse",
+        "nutritiontraining",
+        "functionalnutrition",
+        "holisticnutrition",
+        "healthcoach",
+        "integrativemedicine",
+        "nutritionist"
     ],
-    "accounts": [],
+    "accounts": [
+        "@gimacademy"
+    ],
     "fields": [
         "id",
         "createTime",

@@ -1,0 +1,115 @@
+﻿Starting harvest test...
+node.exe : TEST FAILED
+At C:\Program 
+Files\nodejs\npx.ps1:29 
+char:3
++   & $NODE_EXE 
+$NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (TES  
+  T FAILED:String) [], R   
+ emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+ApifyApiError: By 
+launching this job you 
+will exceed your remaining 
+usage of $0.424678.  
+Please consider upgrading 
+to a paid plan at https://c
+onsole.apify.com/billing/su
+bscription
+  clientMethod: 
+ActorClient.start
+  statusCode: 402
+  type: not-enough-usage-to
+-run-paid-actor
+  attempt: 1
+  httpMethod: post
+  path: /v2/acts/clockworks
+~tiktok-scraper/runs
+  stack: 
+    at makeRequest (E:\aime
+-demo\services\l2-ingestion
+\node_modules\apify-client\
+src\http_client.ts:232:30)
+    at 
+processTicksAndRejections (
+node:internal/process/task_
+queues:105:5)
+    at async 
+ActorClient.start (E:\aime-
+demo\services\l2-ingestion\
+node_modules\apify-client\s
+rc\resource_clients\actor.t
+s:179:26)
+    at async 
+ActorClient.call (E:\aime-d
+emo\services\l2-ingestion\n
+ode_modules\apify-client\sr
+c\resource_clients\actor.ts
+:241:24)
+    at async 
+fetchTikTokSignals (E:\aime
+-demo\services\l2-ingestion
+\src\ingestion\tiktok\harve
+st.ts:30:28)
+    at async 
+runTikTokHarvest (E:\aime-d
+emo\services\l2-ingestion\s
+rc\ingestion\tiktok\harvest
+.ts:62:29)
+    at async test (E:\aime-
+demo\services\l2-ingestion\
+debug_harvest.ts:8:23)
+  data: undefined {
+  clientMethod: 
+'ActorClient.start',
+  statusCode: 402,
+  type: 'not-enough-usage-t
+o-run-paid-actor',
+  attempt: 1,
+  httpMethod: 'post',
+  path: '/v2/acts/clockwork
+s~tiktok-scraper/runs',
+  originalStack: '\n' +
+    '    at makeRequest (E:
+\\aime-demo\\services\\l2-i
+ngestion\\node_modules\\api
+fy-client\\src\\http_client
+.ts:232:30)\n' +
+    '    at 
+processTicksAndRejections (
+node:internal/process/task_
+queues:105:5)\n' +
+    '    at async 
+ActorClient.start (E:\\aime
+-demo\\services\\l2-ingesti
+on\\node_modules\\apify-cli
+ent\\src\\resource_clients\
+\actor.ts:179:26)\n' +
+    '    at async 
+ActorClient.call (E:\\aime-
+demo\\services\\l2-ingestio
+n\\node_modules\\apify-clie
+nt\\src\\resource_clients\\
+actor.ts:241:24)\n' +
+    '    at async 
+fetchTikTokSignals (E:\\aim
+e-demo\\services\\l2-ingest
+ion\\src\\ingestion\\tiktok
+\\harvest.ts:30:28)\n' +
+    '    at async 
+runTikTokHarvest (E:\\aime-
+demo\\services\\l2-ingestio
+n\\src\\ingestion\\tiktok\\
+harvest.ts:62:29)\n' +
+    '    at async test (E:\
+\aime-demo\\services\\l2-in
+gestion\\debug_harvest.ts:8
+:23)',
+  data: undefined
+}

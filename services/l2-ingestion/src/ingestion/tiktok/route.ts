@@ -10,40 +10,44 @@ export async function routeTikTokHarvest() {
         batchSize = items.length;
 
         for (const item of items) {
-            let itemStatus = 'accepted';
-            let govStatus = 'passed';
-            let govReason;
-
             try {
                 // Submit directly through existing ingestion logic handler (Path A)
-                processL2Request(item);
+                const bundle = processL2Request(item);
                 
-                // Note: The actual logging is expected per the task
+                // Detailed logging to match discovery phase requirements
                 console.log(JSON.stringify({
-                    event: 'tiktok_signal_submitted',
+                    event: 'Signal detected',
                     timestamp: new Date().toISOString(),
                     source: 'tiktok',
                     signal_id: item.signal_id,
+                    text: item.metadata?.text,
+                    author: item.metadata?.author,
+                    tags: item.metadata?.tags,
+                    lens: 'GIME v0.1',
+                    topic: bundle.topics.join(', ') || 'unlabeled',
+                    actionable: bundle.topics.length > 0 && !bundle.topics.includes('general'),
                     ingestion_status: 'accepted',
                     governance_status: 'passed'
                 }));
 
             } catch (err: any) {
                 console.log(JSON.stringify({
-                    event: 'tiktok_signal_submitted',
-                    timestamp: new Date().toISOString(),
+                    event: 'tiktok_signal_error',
                     source: 'tiktok',
                     signal_id: item.signal_id,
-                    ingestion_status: 'rejected',
-                    governance_status: 'blocked',
-                    governance_reason_code: 'internal_error'
+                    error: err.message
                 }));
             }
         }
 
     } catch (error: any) {
         status = 'error';
-        console.error("Harvesting failed:", error);
+        console.log(JSON.stringify({
+            event: 'tiktok_harvest_failed',
+            timestamp: new Date().toISOString(),
+            error: error.message,
+            stack: error.stack
+        }));
     } finally {
         console.log(JSON.stringify({
             event: 'tiktok_batch_submit',

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -94,6 +95,17 @@ app.post('/v1/l2/ingest', (req: Request, res: Response): void => {
         const duration_ms = Date.now() - start;
         logEvent('error', correlation_id, signal_id, 'error', { duration_ms, error: String(error) });
         res.status(500).json({ error: 'Internal Server Error', correlation_id });
+    }
+});
+
+import { routeTikTokHarvest } from './ingestion/tiktok/route';
+
+app.post('/v1/ingestion/tiktok/harvest', async (req: Request, res: Response) => {
+    try {
+        await routeTikTokHarvest();
+        res.status(202).json({ status: 'accepted', message: 'TikTok harvest started' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to start TikTok harvest', detail: String(error) });
     }
 });
 
