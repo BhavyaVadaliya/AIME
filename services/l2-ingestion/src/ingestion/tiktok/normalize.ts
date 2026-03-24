@@ -21,7 +21,7 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest {
     // Support multiple possible field names for the post text
     const text = rawItem.text || rawItem.videoDescription || rawItem.contents || rawItem.desc || '';
     if (text.trim() === '') {
-        throw new Error("Missing required field: text");
+        throw new Error("Missing required field: text (videoDescription)");
     }
 
     // Support multiple possible author formats
