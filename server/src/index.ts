@@ -13,6 +13,10 @@ import creatorRoutes from './routes/creator.js';
 import analyticsRoutes from './routes/analytics.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from "./routes/admin.js";
+import { connectDB } from './db.js';
+
+// Connect to Database
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 4000;

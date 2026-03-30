@@ -7,10 +7,12 @@ import 'dotenv/config';
 const INTERVAL_MS = 60 * 60 * 1000; // Run every 1 hour
 const DURATION_MS = 24 * 60 * 60 * 1000; // Stop after 24 hours
 
+const L2_INGESTION_URL = process.env.L2_INGESTION_URL || 'http://localhost:3001';
+
 async function triggerHarvest() {
     try {
         console.log(`[${new Date().toISOString()}] Triggering TikTok harvest batch...`);
-        const response = await fetch('http://localhost:3001/v1/ingestion/tiktok/harvest', {
+        const response = await fetch(`${L2_INGESTION_URL}/v1/ingestion/tiktok/harvest`, {
             method: 'POST'
         });
         const data = await response.json();

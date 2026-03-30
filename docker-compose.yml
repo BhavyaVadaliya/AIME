@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  aime-mongodb:
+    image: mongo:latest
+    container_name: aime-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - aime-data:/data/db
+    restart: always
+
+  aime-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    image: aime-backend:live
+    container_name: aime-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - MONGODB_URI=mongodb://aime-mongodb:27017/aime
+      - NODE_ENV=production
+    depends_on:
+      - aime-mongodb
+    restart: always
+
+  l2-ingestion:
+    build:
+      context: ./services/l2-ingestion
+      dockerfile: Dockerfile
+    image: l2-ingestion:live
+    container_name: l2-ingestion
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - CORE_API_URL=http://aime-backend:4000/api
+      - APIFY_API_TOKEN=${APIFY_API_TOKEN}
+      - TIKTOK_ACTOR=clockworks/tiktok-scraper
+      - NODE_ENV=production
+    depends_on:
+      - aime-backend
+    restart: always
+
+  rtce-text:
+    build:
+      context: ./services/rtce-text
+      dockerfile: Dockerfile
+    image: rtce-text:live
+    container_name: rtce-text
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - NODE_ENV=production
+    restart: always
+
+  # Task Runner for 24h continuous scan
+  scan-runner:
+    build:
+      context: ./services/l2-ingestion
+      dockerfile: Dockerfile
+    image: l2-ingestion:live
+    container_name: scan-runner
+    command: ["npx", "tsx", "run_24h_scan.ts"]
+    environment:
+      - L2_INGESTION_URL=http://l2-ingestion:3001
+      - APIFY_API_TOKEN=${APIFY_API_TOKEN}
+    depends_on:
+      - l2-ingestion
+    restart: always
+
+volumes:
+  aime-data:

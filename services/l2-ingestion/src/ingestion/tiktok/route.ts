@@ -1,5 +1,8 @@
+import axios from 'axios';
 import { runTikTokHarvest } from './harvest';
 import { processL2Request } from '../../logic';
+
+const CORE_API_URL = process.env.CORE_API_URL || 'http://localhost:4000/api';
 
 export async function routeTikTokHarvest() {
     let batchSize = 0;
@@ -11,10 +14,10 @@ export async function routeTikTokHarvest() {
 
         for (const item of items) {
             try {
-                // Submit directly through existing ingestion logic handler (Path A)
+                // Submit through ingestion logic handler
                 const bundle = processL2Request(item);
                 
-                // Detailed logging to match discovery phase requirements
+                // Detailed logging
                 console.log(JSON.stringify({
                     event: 'Signal detected',
                     timestamp: new Date().toISOString(),
@@ -29,6 +32,25 @@ export async function routeTikTokHarvest() {
                     ingestion_status: 'accepted',
                     governance_status: 'passed'
                 }));
+
+                // Phase 1: Push to Core API for Storage/Dashboard
+                try {
+                    await axios.post(`${CORE_API_URL}/admin/signals`, {
+                        signal_id: item.signal_id,
+                        source: 'tiktok',
+                        raw_text: item.raw_text,
+                        metadata: item.metadata,
+                        topics: bundle.topics,
+                        subtopics: bundle.subtopics,
+                        context_summary: bundle.context_summary,
+                        flags: bundle.flags,
+                        actionable: bundle.topics.length > 0 && !bundle.topics.includes('general'),
+                        status: 'accepted',
+                        governance_status: 'passed'
+                    });
+                } catch (pushErr: any) {
+                    console.error(`Failed to push signal ${item.signal_id} to Core API: ${pushErr.message}`);
+                }
 
             } catch (err: any) {
                 console.log(JSON.stringify({

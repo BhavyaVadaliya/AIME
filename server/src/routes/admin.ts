@@ -1,31 +1,75 @@
 import { Router, Request, Response } from "express";
+import Signal from "../models/Signal.js";
 
 const router = Router();
 
 /**
  * GET /admin/logs
- * Returns a placeholder paginated list of recent AI comments/signals.
- * Later: wire to real log storage.
+ * Returns the list of recent signals from MongoDB.
  */
-router.get("/logs", (req: Request, res: Response) => {
-  // Placeholder response for now
-  return res.json({
-    items: [],
-    pagination: { page: 1, pageSize: 50, total: 0 },
-  });
+router.get("/logs", async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = 50;
+    
+    const [items, total] = await Promise.all([
+      Signal.find().sort({ ingested_at: -1 }).skip((page - 1) * pageSize).limit(pageSize),
+      Signal.countDocuments()
+    ]);
+
+    return res.json({
+      items,
+      pagination: { page, pageSize, total },
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to fetch logs" });
+  }
 });
 
 /**
  * GET /admin/metrics
- * Returns placeholder metrics for dashboard charts.
+ * Returns real aggregation of signals in the last 24h.
  */
-router.get("/metrics", (req: Request, res: Response) => {
-  return res.json({
-    signalsLast24h: 0,
-    commentsGenerated: 0,
-    flaggedComments: 0,
-    personasActive: 0,
-  });
+router.get("/metrics", async (req: Request, res: Response) => {
+  try {
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const count = await Signal.countDocuments({ ingested_at: { $gte: last24h } });
+
+    return res.json({
+      signalsLast24h: count,
+      commentsGenerated: 0, // Placeholder
+      flaggedComments: 0,
+      personasActive: 0,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to calculate metrics" });
+  }
+});
+
+/**
+ * POST /admin/signals
+ * Receives a processed signal and stores it in MongoDB.
+ * Called by the ingestion service.
+ */
+router.post("/signals", async (req: Request, res: Response) => {
+  try {
+    const signalData = req.body;
+    // Basic validation
+    if (!signalData.signal_id || !signalData.raw_text) {
+      return res.status(400).json({ error: "Missing signal_id or raw_text" });
+    }
+
+    const doc = await Signal.findOneAndUpdate(
+      { signal_id: signalData.signal_id },
+      { ...signalData, ingested_at: new Date() },
+      { upsert: true, new: true }
+    );
+
+    return res.status(201).json({ success: true, id: doc._id });
+  } catch (error) {
+    console.error("Signal ingest error:", error);
+    return res.status(500).json({ error: "Failed to store signal" });
+  }
 });
 
 /**
