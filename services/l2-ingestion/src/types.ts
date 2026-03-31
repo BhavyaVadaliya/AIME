@@ -10,6 +10,12 @@ export const L2IngestRequestSchema = z.object({
 
 export type L2IngestRequest = z.infer<typeof L2IngestRequestSchema>;
 
+export interface SignalClassification {
+    primary_category: string;
+    signal_type: string;
+    context_tags: string[];
+}
+
 export interface L2Bundle {
     correlation_id: string;
     signal_id: string;
@@ -20,4 +26,5 @@ export interface L2Bundle {
     entities: string[];
     confidence: number;
     flags: string[];
+    classification?: SignalClassification;
 }

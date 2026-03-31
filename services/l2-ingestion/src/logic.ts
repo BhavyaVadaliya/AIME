@@ -1,8 +1,10 @@
 import { L2IngestRequest, L2Bundle } from './types';
 import { getActiveMapping } from './lens/gime_mapping_loader';
+import { classifySignal } from './classification/signal_classifier';
 
 export const processL2Request = (req: L2IngestRequest): L2Bundle => {
-    const text = req.raw_text.toLowerCase();
+    const rawText = req.raw_text;
+    const text = rawText.toLowerCase();
     const mapping = getActiveMapping();
     const topics: string[] = [];
     const subtopics: string[] = [];
@@ -69,6 +71,7 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         context_summary,
         entities: [],
         confidence: 1.0,
-        flags
+        flags,
+        classification: classifySignal(rawText)
     };
 };
