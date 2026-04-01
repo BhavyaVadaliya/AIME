@@ -45,6 +45,12 @@ const samples: L2IngestRequest[] = [
         signal_id: "sig-6",
         source: "tiktok",
         raw_text: "struggling with gut health issue"
+    },
+    {
+        correlation_id: "test-7",
+        signal_id: "sig-7",
+        source: "tiktok",
+        raw_text: "totally unrelated text"
     }
 ];
 

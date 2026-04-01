@@ -1,4 +1,4 @@
-export type PrimaryCategory = 'Monetization' | 'Engagement' | 'Professional Pathway' | 'Education' | 'Lifestyle' | 'Promotion';
+export type PrimaryCategory = 'Monetization' | 'Engagement' | 'Professional Pathway' | 'Education' | 'Lifestyle' | 'Promotion' | 'UNCLASSIFIED';
 export type SignalType = 'Content' | 'Question' | 'Problem' | 'Offer' | 'CTA';
 export type ContextTag = 'Clinical' | 'Coaching' | 'Fitness' | 'General Wellness';
 
@@ -16,7 +16,7 @@ export function classifySignal(text: string): SignalClassification {
   const t = text.toLowerCase();
 
   // 1. PRIMARY CATEGORY (Priority Order: Monetization > Professional Pathway > Education > Promotion > Lifestyle > Engagement)
-  let primaryCategory: PrimaryCategory = 'Engagement'; // Default/Fallback
+  let primaryCategory: PrimaryCategory = 'UNCLASSIFIED'; // Strict Deterministic Root
 
   if (t.includes('price') || t.includes('cost') || t.includes('buy') || t.includes('earn')) {
     primaryCategory = 'Monetization';
