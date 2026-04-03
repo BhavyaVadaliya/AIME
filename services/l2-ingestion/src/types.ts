@@ -27,4 +27,11 @@ export interface L2Bundle {
     confidence: number;
     flags: string[];
     classification?: SignalClassification;
+    governance_route?: {
+        queue: 'low_risk' | 'higher_risk';
+        routing_basis: {
+            primary_category: string;
+            signal_type: string;
+        }
+    }
 }

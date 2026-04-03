@@ -1,6 +1,9 @@
-import { L2IngestRequest, L2Bundle } from './types';
+import { L2IngestRequest, L2Bundle, SignalClassification } from './types';
 import { getActiveMapping } from './lens/gime_mapping_loader';
 import { classifySignal } from './classification/signal_classifier';
+import { GovernanceRouter } from './governance/governance_router';
+
+const govRouter = new GovernanceRouter();
 
 export const processL2Request = (req: L2IngestRequest): L2Bundle => {
     const rawText = req.raw_text;
@@ -34,7 +37,6 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
 
     // Apply active mapping topics conditionally
     if (mapping && mapping.topics) {
-        // Intent heuristic evaluation based on GIME v0.1 Remediation guidelines
         const profKeywords = ['doctor', 'physician', 'nurse', 'pharmacist', 'clinician', 'chiropractor', 'healthcare professional', 'healthcare provider', 'practitioner', 'physical therapist', 'dietitian'];
         const eduKeywords = ['learn', 'study', 'course', 'training', 'certification', 'continuing education', 'program', 'education', 'knowledge'];
         const nutritionKeywords = ['nutrition', 'clinical nutrition', 'nutrition science', 'evidence-based nutrition', 'lifestyle medicine', 'functional nutrition', 'nutrition counseling', 'metabolic health', 'nutrition advice'];
@@ -42,9 +44,7 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         const hasProfContext = profKeywords.some(keyword => text.includes(keyword));
         const hasEduContext = eduKeywords.some(keyword => text.includes(keyword));
         const hasNutritionContext = nutritionKeywords.some(keyword => text.includes(keyword));
-
-        // Condition 1: Professional AND Education AND Nutrition (core)
-        // Adjusting slightly to capture edge cases (like B3, A8, A10).
+ 
         if (hasProfContext && hasEduContext) {
             topics.push(...mapping.topics);
             context_summary = "Professional nutrition education inquiry.";
@@ -62,6 +62,9 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         flags.push("policy_risk_high");
     }
 
+    const classification = classifySignal(rawText);
+    const governance_route = govRouter.route(req.signal_id, classification);
+
     return {
         correlation_id: req.correlation_id,
         signal_id: req.signal_id,
@@ -72,6 +75,7 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         entities: [],
         confidence: 1.0,
         flags,
-        classification: classifySignal(rawText)
+        classification,
+        governance_route
     };
 };

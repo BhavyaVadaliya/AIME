@@ -3,15 +3,13 @@ import { normalizeTikTokItem, RawTikTokItem } from './normalize';
 import { L2IngestRequest } from '../../types';
 import * as fs from 'fs';
 import * as path from 'path';
-import { RelatedContentExporter } from '../../discovery_expanded/related';
-import { CommentExtractor } from '../../discovery_expanded/comments';
 
 const client = new ApifyClient({
     token: process.env.APIFY_API_TOKEN || 'MISSING_TOKEN',
 });
 
 function getConfigPath(): string {
-    const rootDir = path.join(__dirname, '..', '..', '..', '..');
+    const rootDir = path.join(__dirname, '..', '..', '..', '..', '..');
     return path.join(rootDir, 'config', 'ingestion', 'tiktok_scope.json');
 }
 
@@ -156,40 +154,21 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     const hashtags = config.hashtags || [];
     const accounts = config.accounts || [];
 
-    // Fetch live signals from TikTok via Apify (Seeds)
-    const rawSignals: any[] = await fetchTikTokSignals(hashtags, 75, accounts);
-
-    // === EXPANDED DISCOVERY LAYER (S10-T04 + S10-T05) ===
-    const relatedExporter = new RelatedContentExporter();
-    const commentExtractor = new CommentExtractor();
-    
-    // Load expansion config
-    const rootDir = path.join(__dirname, '..', '..', '..', '..');
-    const expansionConfigPath = path.join(rootDir, 'config', 'discovery', 'expansion.json');
-    const expansionConfig = JSON.parse(fs.readFileSync(expansionConfigPath, 'utf8'));
-    const maxParents = expansionConfig.max_parent_posts_per_cycle || 5;
-
-    let totalDiscoveredRaw: any[] = [...rawSignals];
-    
-    // Apply expansion only to a limited subset of seeds to respect performance and guards
-    for (const parent of rawSignals.slice(0, maxParents)) {
-        const related = relatedExporter.expand(parent);
-        const comments = commentExtractor.extract(parent);
-        totalDiscoveredRaw = totalDiscoveredRaw.concat(related, comments);
-    }
+    // Fetch live signals from TikTok via Apify
+    const rawItems: any[] = await fetchTikTokSignals(hashtags, 75, accounts);
 
     // DEDUPLICATION: Exact ID Match (Pre-normalization)
     const seenIds = new Set();
-    const uniqueRawItems = totalDiscoveredRaw.filter(item => {
-        const sid = item.id || item.video_id; // Related/Comments provide id or video_id
-        if (!sid || seenIds.has(sid)) return false;
-        seenIds.add(sid);
+    const uniqueRawItems = rawItems.filter(item => {
+        if (!item.id || seenIds.has(item.id)) return false;
+        seenIds.add(item.id);
         return true;
     });
 
     const normalizedItems: L2IngestRequest[] = [];
     
     for (const item of uniqueRawItems) {
+        // Enforce the hard cap (post-deduplication)
         if (normalizedItems.length >= maxSignals) {
             break;
         }
@@ -202,7 +181,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
                 event: 'tiktok_harvest_item',
                 timestamp: new Date().toISOString(),
                 source: 'tiktok',
-                source_id: item.id || item.video_id,
+                source_id: item.id,
                 ingestion_status: 'accepted',
                 governance_status: 'passed'
             }));
@@ -212,7 +191,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
                 event: 'tiktok_harvest_item',
                 timestamp: new Date().toISOString(),
                 source: 'tiktok',
-                source_id: item.id || item.video_id || 'unknown',
+                source_id: item.id || 'unknown',
                 ingestion_status: 'rejected',
                 governance_status: 'blocked',
                 governance_reason_code: 'validation_failed'
