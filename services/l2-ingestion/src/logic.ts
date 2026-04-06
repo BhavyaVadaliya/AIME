@@ -3,9 +3,11 @@ import { getActiveMapping } from './lens/gime_mapping_loader';
 import { classifySignal } from './classification/signal_classifier';
 import { GovernanceRouter } from './governance/governance_router';
 import { StructuredPostBuilder } from './governance/structured_post_builder';
+import { LifecycleReporter } from './governance/governance_reporting';
 
 const govRouter = new GovernanceRouter();
 const postBuilder = new StructuredPostBuilder();
+const reporter = new LifecycleReporter();
 
 export const processL2Request = (req: L2IngestRequest): L2Bundle => {
     const rawText = req.raw_text;
@@ -65,7 +67,18 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
     }
 
     const classification = classifySignal(rawText);
-    const governance_route = govRouter.route(req.signal_id, classification);
+    
+    console.log(JSON.stringify({
+        event: "signal_classified",
+        timestamp: new Date().toISOString(),
+        signal_id: req.signal_id,
+        correlation_id: req.correlation_id,
+        primary_category: classification.primary_category,
+        signal_type: classification.signal_type,
+        status: "ok"
+    }));
+
+    const governance_route = govRouter.route(req.signal_id, req.correlation_id, classification);
 
     const bundle: L2Bundle = {
         correlation_id: req.correlation_id,
@@ -81,5 +94,8 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         governance_route
     };
 
-    return postBuilder.build(bundle, rawText);
+    const finalBundle = postBuilder.build(bundle, rawText);
+    reporter.logLifecycle(finalBundle);
+    
+    return finalBundle;
 };

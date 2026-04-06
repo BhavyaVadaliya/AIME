@@ -178,6 +178,15 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
             normalizedItems.push(normalized);
 
             console.log(JSON.stringify({
+                event: 'signal_ingested',
+                timestamp: new Date().toISOString(),
+                signal_id: normalized.signal_id,
+                correlation_id: normalized.correlation_id,
+                source: 'tiktok',
+                status: 'ok'
+            }));
+
+            console.log(JSON.stringify({
                 event: 'tiktok_harvest_item',
                 timestamp: new Date().toISOString(),
                 source: 'tiktok',

@@ -52,7 +52,7 @@ export class GovernanceRouter {
      * Assigns a signal to a governance queue deterministically.
      * All signals are preserved; no filtering happens here.
      */
-    route(signalId: string, classification: SignalClassification): GovernanceRoute {
+    route(signalId: string, correlationId: string, classification: SignalClassification): GovernanceRoute {
         const { primary_category: cat, signal_type: type } = classification;
         
         let queue: 'low_risk' | 'higher_risk' = 'higher_risk'; // Default to defensive/higher risk
@@ -78,6 +78,7 @@ export class GovernanceRouter {
             event: "governance_queue_routed",
             timestamp: new Date().toISOString(),
             signal_id: signalId,
+            correlation_id: correlationId,
             queue: route.queue,
             primary_category: cat,
             signal_type: type,

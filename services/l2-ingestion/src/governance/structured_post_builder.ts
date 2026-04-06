@@ -39,6 +39,7 @@ export class StructuredPostBuilder {
             event: "structured_post_created",
             timestamp: new Date().toISOString(),
             signal_id: bundle.signal_id,
+            correlation_id: bundle.correlation_id,
             queue: bundle.governance_route?.queue,
             status: "ok"
         }));
