@@ -2,8 +2,10 @@ import { L2IngestRequest, L2Bundle, SignalClassification } from './types';
 import { getActiveMapping } from './lens/gime_mapping_loader';
 import { classifySignal } from './classification/signal_classifier';
 import { GovernanceRouter } from './governance/governance_router';
+import { StructuredPostBuilder } from './governance/structured_post_builder';
 
 const govRouter = new GovernanceRouter();
+const postBuilder = new StructuredPostBuilder();
 
 export const processL2Request = (req: L2IngestRequest): L2Bundle => {
     const rawText = req.raw_text;
@@ -65,7 +67,7 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
     const classification = classifySignal(rawText);
     const governance_route = govRouter.route(req.signal_id, classification);
 
-    return {
+    const bundle: L2Bundle = {
         correlation_id: req.correlation_id,
         signal_id: req.signal_id,
         l2_version: "v0",
@@ -78,4 +80,6 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         classification,
         governance_route
     };
+
+    return postBuilder.build(bundle, rawText);
 };

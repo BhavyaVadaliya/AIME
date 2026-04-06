@@ -33,5 +33,16 @@ export interface L2Bundle {
             primary_category: string;
             signal_type: string;
         }
-    }
+    };
+    structured_post?: {
+        raw_text: string;
+        classification: SignalClassification;
+        governance_route: {
+            queue: string;
+            routing_basis: {
+                primary_category: string;
+                signal_type: string;
+            }
+        }
+    };
 }
