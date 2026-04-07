@@ -45,4 +45,12 @@ export interface L2Bundle {
             }
         }
     };
+    approval_status?: {
+        state: 'approved' | 'revoked' | 'pending';
+        approved_at?: string;
+        revoked_at?: string;
+        approved_by?: string;
+        revoked_by?: string;
+        reversible: boolean;
+    };
 }
