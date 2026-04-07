@@ -5,5 +5,5 @@
   "max_signals_post_cap": 25,
   "min_rate_limit_remaining": 5,
   "backoff_ms": 1000,
-  "max_cycle_duration_ms": 100
+  "max_cycle_duration_ms": 30000
 }
