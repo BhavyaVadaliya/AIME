@@ -1,5 +1,7 @@
 import { L2Bundle, SignalClassification } from '../types';
-import { GovernanceRoute } from './governance_router';
+import { SignalScorer } from '../scoring/signal_scorer';
+
+const scorer = new SignalScorer();
 
 export interface StructuredPost {
     raw_text: string;
@@ -11,6 +13,12 @@ export interface StructuredPost {
             signal_type: string;
         }
     };
+    signal_score?: {
+        score: number;
+        category_weight: number;
+        type_adjustment: number;
+        pattern_boost: number;
+    }
 }
 
 /**
@@ -23,10 +31,13 @@ export class StructuredPostBuilder {
      * Constructs a structured_post object and appends it to the signal bundle.
      */
     build(bundle: L2Bundle, rawText: string): L2Bundle {
+        const signal_score = scorer.computeScore(bundle.signal_id, bundle.classification!);
+
         const structured_post: StructuredPost = {
             raw_text: rawText,
             classification: bundle.classification!,
-            governance_route: bundle.governance_route!
+            governance_route: bundle.governance_route!,
+            signal_score
         };
 
         const augmentedBundle = {

@@ -43,6 +43,12 @@ export interface L2Bundle {
                 primary_category: string;
                 signal_type: string;
             }
+        };
+        signal_score?: {
+            score: number;
+            category_weight: number;
+            type_adjustment: number;
+            pattern_boost: number;
         }
     };
     approval_status?: {
