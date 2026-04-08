@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DashboardLitePage } from "./pages/DashboardLitePage";
 import { LogsPage } from "./pages/LogsPage";
 import { PersonaUsagePage } from "./pages/PersonaUsagePage";
 
@@ -10,6 +11,7 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/admin/dashboard" element={<DashboardPage />} />
+        <Route path="/admin/dashboard-lite" element={<DashboardLitePage />} />
         <Route path="/admin/logs" element={<LogsPage />} />
         <Route path="/admin/persona-usage" element={<PersonaUsagePage />} />
         {/* Default redirect if someone hits /admin directly */}

@@ -2,12 +2,16 @@ import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { L2IngestRequestSchema } from './types';
+import { L2IngestRequestSchema, L2Bundle } from './types';
 import { processL2Request } from './logic';
 import { load_gime_v0_1, getActiveMapping } from './lens/gime_mapping_loader';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Read-only buffer for Dashboard Lite
+const processedSignalsSnapshot: L2Bundle[] = [];
+const MAX_SNAPSHOT_SIZE = 50;
 
 // Load static mapping at boot
 load_gime_v0_1();
@@ -85,7 +89,13 @@ app.post('/v1/l2/ingest', (req: Request, res: Response): void => {
         // 2. Process
         const bundle = processL2Request(body);
 
-        // 3. Response
+        // 3. Buffer for Dashboard Lite (Read-Only)
+        processedSignalsSnapshot.unshift(bundle);
+        if (processedSignalsSnapshot.length > MAX_SNAPSHOT_SIZE) {
+            processedSignalsSnapshot.pop();
+        }
+
+        // 4. Response
         const duration_ms = Date.now() - start;
         logEvent('bundle_created', correlation_id, signal_id, 'ok', { duration_ms });
 
@@ -96,6 +106,11 @@ app.post('/v1/l2/ingest', (req: Request, res: Response): void => {
         logEvent('error', correlation_id, signal_id, 'error', { duration_ms, error: String(error) });
         res.status(500).json({ error: 'Internal Server Error', correlation_id });
     }
+});
+
+// READ-ONLY DASHBOARD LITE ENDPOINT
+app.get('/v1/governance/signals', (req, res) => {
+    res.json(processedSignalsSnapshot);
 });
 
 import { routeTikTokHarvest } from './ingestion/tiktok/route';

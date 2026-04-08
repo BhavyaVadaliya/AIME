@@ -1,0 +1,20 @@
+{
+  "high": {
+    "category_and_type": [
+      ["Monetization", ["Problem", "Offer", "CTA"]],
+      ["Professional Pathway", ["Problem", "Offer", "CTA"]]
+    ],
+    "type_override": ["Problem"]
+  },
+  "medium": {
+    "category_and_type": [
+      ["Engagement", ["Question", "CTA"]],
+      ["Education", ["Question", "CTA"]]
+    ],
+    "category_minimum": ["Monetization", "Professional Pathway"]
+  },
+  "low": {
+    "categories": ["Lifestyle", "Promotion"],
+    "generic_content_cap": true
+  }
+}
