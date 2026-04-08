@@ -1,0 +1,24 @@
+{
+  "category_weight": {
+    "Monetization": 3,
+    "Professional Pathway": 3,
+    "Engagement": 2,
+    "Education": 2,
+    "Lifestyle": 1,
+    "Promotion": 1,
+    "UNCLASSIFIED": 0
+  },
+  "signal_type_adjustment": {
+    "Problem": 3,
+    "Offer": 3,
+    "Question": 2,
+    "CTA": 2,
+    "Content": 1
+  },
+  "pattern_boost": {
+    "Monetization+CTA": 2,
+    "Monetization+Problem": 2,
+    "Professional Pathway+Education-context": 1,
+    "Engagement+Monetization-context": 1
+  }
+}
