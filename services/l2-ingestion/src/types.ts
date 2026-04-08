@@ -49,7 +49,8 @@ export interface L2Bundle {
             category_weight: number;
             type_adjustment: number;
             pattern_boost: number;
-        }
+        };
+        priority_tier?: 'HIGH' | 'MEDIUM' | 'LOW';
     };
     approval_status?: {
         state: 'approved' | 'revoked' | 'pending';

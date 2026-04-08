@@ -1,7 +1,9 @@
 import { L2Bundle, SignalClassification } from '../types';
 import { SignalScorer } from '../scoring/signal_scorer';
+import { PriorityTierMapper, PriorityTier } from '../scoring/priority_tier_mapper';
 
 const scorer = new SignalScorer();
+const mapper = new PriorityTierMapper();
 
 export interface StructuredPost {
     raw_text: string;
@@ -18,7 +20,8 @@ export interface StructuredPost {
         category_weight: number;
         type_adjustment: number;
         pattern_boost: number;
-    }
+    };
+    priority_tier?: PriorityTier;
 }
 
 /**
@@ -32,12 +35,14 @@ export class StructuredPostBuilder {
      */
     build(bundle: L2Bundle, rawText: string): L2Bundle {
         const signal_score = scorer.computeScore(bundle.signal_id, bundle.classification!);
+        const priority_tier = mapper.mapTier(bundle.signal_id, bundle.classification!);
 
         const structured_post: StructuredPost = {
             raw_text: rawText,
             classification: bundle.classification!,
             governance_route: bundle.governance_route!,
-            signal_score
+            signal_score,
+            priority_tier
         };
 
         const augmentedBundle = {
