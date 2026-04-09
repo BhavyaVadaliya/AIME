@@ -24,6 +24,7 @@ export interface LifecycleReport {
             event: string;
             status: string;
             timestamp: string;
+            data?: any; // Include the full structured post map for reporting
         };
     };
 }
@@ -68,7 +69,8 @@ export class LifecycleReporter {
                 structured_post: {
                     event: "structured_post_created",
                     status: "ok",
-                    timestamp: now
+                    timestamp: now,
+                    data: bundle.structured_post
                 }
             }
         };

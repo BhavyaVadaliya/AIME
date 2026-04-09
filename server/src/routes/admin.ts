@@ -1,7 +1,53 @@
 import { Router, Request, Response } from "express";
 import Signal from "../models/Signal.js";
+import fs from "fs";
+import path from "path";
 
 const router = Router();
+
+/**
+ * GET /admin/governance/signals (S10-T15 Correction)
+ * Read-only re-sourcing from ingestion logs.
+ * Zero impact on ingestion runtime.
+ */
+router.get("/governance/signals", async (req: Request, res: Response) => {
+  try {
+    const logPath = "E:\\aime-demo\\l2_logs.txt";
+    console.log(`[Admin] Reading logs from: ${logPath}`); // Audit log
+    if (!fs.existsSync(logPath)) {
+      console.warn(`[Admin] Log file not found at: ${logPath}`);
+      return res.json([]);
+    }
+
+    const content = fs.readFileSync(logPath, "utf8");
+    const lines = content.split("\n").filter(l => l.trim().length > 0);
+    console.log(`[Admin] Total lines in log: ${lines.length}`);
+    
+    // Parse logs and extract lifecycle reports
+    const signals: any[] = [];
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line.trim());
+        if (entry.event === "signal_lifecycle_report") {
+          signals.unshift({
+              signal_id: entry.signal_id,
+              correlation_id: entry.correlation_id,
+              timestamp: entry.timestamp,
+              structured_post: entry.structured_post?.data || entry.structured_post
+          });
+        }
+      } catch (e) { 
+          // skip
+      }
+    }
+    console.log(`[Admin] Found ${signals.length} lifecycle reports`);
+
+    return res.json(signals.slice(0, 50));
+  } catch (error) {
+    console.error("Governance signals read error:", error);
+    return res.status(500).json({ error: "Failed to read governance logs" });
+  }
+});
 
 /**
  * GET /admin/logs

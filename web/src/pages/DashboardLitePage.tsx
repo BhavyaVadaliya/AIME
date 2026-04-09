@@ -32,9 +32,15 @@ export const DashboardLitePage: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const response = await fetch('http://localhost:3001/v1/governance/signals');
+            const response = await fetch('http://localhost:4000/admin/governance/signals');
             const data = await response.json();
-            setSignals(data);
+            // Data coming from logs are signal_lifecycle_report entries
+            const simplified = data.map((entry: any) => ({
+                signal_id: entry.signal_id,
+                correlation_id: entry.correlation_id,
+                structured_post: entry.structured_post?.data || entry.structured_post
+            }));
+            setSignals(simplified);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching signals:', error);
