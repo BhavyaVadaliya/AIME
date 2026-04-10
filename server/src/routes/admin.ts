@@ -12,7 +12,7 @@ const router = Router();
  */
 router.get("/governance/signals", async (req: Request, res: Response) => {
   try {
-    const logPath = "E:\\aime-demo\\l2_logs.txt";
+    const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
     console.log(`[Admin] Reading logs from: ${logPath}`); // Audit log
     if (!fs.existsSync(logPath)) {
       console.warn(`[Admin] Log file not found at: ${logPath}`);
