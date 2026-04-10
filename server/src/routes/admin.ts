@@ -29,11 +29,17 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
       try {
         const entry = JSON.parse(line.trim());
         if (entry.event === "signal_lifecycle_report") {
+          // Backward compatibility for simulated signals vs real LifecycleReports
+          let structured_post = entry.structured_post?.data || entry.structured_post;
+          if (!structured_post && entry.lifecycle?.structured_post) {
+            structured_post = entry.lifecycle.structured_post.data || entry.lifecycle.structured_post;
+          }
+
           signals.unshift({
               signal_id: entry.signal_id,
               correlation_id: entry.correlation_id,
               timestamp: entry.timestamp,
-              structured_post: entry.structured_post?.data || entry.structured_post
+              structured_post
           });
         }
       } catch (e) { 

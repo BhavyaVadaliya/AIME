@@ -25,7 +25,7 @@ async function runSimulator() {
     console.log("Pushing a new signal every 5 seconds...");
 
     let count = 0;
-    while (true) {
+    while (count < 50) {
         const pattern = patterns[Math.floor(Math.random() * patterns.length)];
         const id = `live-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         
@@ -51,12 +51,6 @@ async function runSimulator() {
         console.log(`[LIVE] ${new Date().toLocaleTimeString()} - Pushed: ${id} (${bundle.structured_post?.priority_tier})`);
         
         count++;
-        // Keep file size manageable
-        if (count % 100 === 0) {
-            // Optional: trim log if it gets too big
-        }
-
-        await new Promise(r => setTimeout(r, 5000));
     }
 }
 

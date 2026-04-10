@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { L2Bundle } from '../types';
 
 export interface LifecycleReport {
@@ -82,13 +84,21 @@ export class LifecycleReporter {
     logLifecycle(bundle: L2Bundle): void {
         try {
             const report = this.generateReport(bundle);
-            console.log(JSON.stringify({
+            const entry = {
                 event: "signal_lifecycle_report",
                 timestamp: new Date().toISOString(),
                 ...report
-            }));
-        } catch (e) {
-            // Silently fail logging if report cannot be generated
+            };
+            
+            // 1. Console Log
+            console.log(JSON.stringify(entry));
+
+            // 2. File Log for Dashboard Lite
+            const logPath = path.resolve(process.cwd(), "..", "..", "l2_logs.txt");
+            fs.appendFileSync(logPath, JSON.stringify(entry) + "\n");
+            
+        } catch (e: any) {
+            console.error(`Failed to log lifecycle: ${e.message}`);
         }
     }
 }
