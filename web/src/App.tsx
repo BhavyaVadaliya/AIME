@@ -19,6 +19,11 @@ export function App() {
           path="/admin"
           element={<Navigate to="/admin/dashboard" replace />}
         />
+        {/* Default redirect for the root path so the client doesn't see a blank screen */}
+        <Route
+          path="/"
+          element={<Navigate to="/admin/dashboard-lite" replace />}
+        />
       </Routes>
     </BrowserRouter>
   );
