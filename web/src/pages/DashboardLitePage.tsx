@@ -32,8 +32,8 @@ export const DashboardLitePage: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-            const response = await fetch(`${apiUrl}/admin/governance/signals`);
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+            const response = await fetch(`${API_URL}/admin/governance/signals`);
             const data = await response.json();
             // Data coming from logs are signal_lifecycle_report entries
             const simplified = data.map((entry: any) => ({
