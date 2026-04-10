@@ -26,23 +26,49 @@ export function classifySignal(text: string): SignalClassification {
     primaryCategory = 'Education';
   } else if (t.includes('limited offer') || t.includes('sign up') || t.includes('join now')) {
     primaryCategory = 'Promotion';
-  } else if (t.includes('tips') || t.includes('routine') || t.includes('daily habits') || t.includes('habit')) {
+  } else if (t.includes('routine') || t.includes('daily habits') || t.includes('habit')) {
     primaryCategory = 'Lifestyle';
   } else if (t.includes('follow') || t.includes('like') || t.includes('comment') || t.includes('subscribe')) {
     primaryCategory = 'Engagement';
   }
 
+  // 1️⃣ Education Fallback (Runs if no stronger rule matched)
+  if (primaryCategory === 'UNCLASSIFIED') {
+    if (t.includes('tips') || t.includes('guide') || t.includes('explained') || 
+        t.includes('how to') || t.includes('ways to') || t.includes('best way to') || 
+        t.includes('what is') || t.includes('science')) {
+      primaryCategory = 'Education';
+    }
+  }
+
   // 2. SIGNAL TYPE
   let signalType: SignalType = 'Content';
 
-  if (t.trim().endsWith('?')) {
-    signalType = 'Question';
-  } else if (t.includes('struggling') || t.includes("can't") || t.includes('issue') || t.includes('problem')) {
+  if (t.includes('struggling') || t.includes("can't") || t.includes('issue') || t.includes('problem') || t.includes('trouble')) {
     signalType = 'Problem';
   } else if (t.includes('offering') || t.includes('available now')) {
     signalType = 'Offer';
   } else if (t.includes('buy') || t.includes('join') || t.includes('sign up') || t.includes('click link')) {
     signalType = 'CTA';
+  }
+
+  // 2️⃣ Question Type Fallback
+  if (signalType === 'Content') {
+    const trimmedText = t.trim();
+    if (
+      trimmedText.includes('?') || 
+      trimmedText.startsWith('how') || 
+      trimmedText.startsWith('what') || 
+      trimmedText.startsWith('why') || 
+      trimmedText.startsWith('when') || 
+      trimmedText.startsWith('where') || 
+      trimmedText.startsWith('is ') || 
+      trimmedText.startsWith('are ') || 
+      trimmedText.startsWith('can ') || 
+      trimmedText.startsWith('should ')
+    ) {
+      signalType = 'Question';
+    }
   }
 
   // 3. CONTEXT TAGS (Multi-assignment)
