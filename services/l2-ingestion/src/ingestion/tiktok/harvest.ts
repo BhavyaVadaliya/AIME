@@ -1,5 +1,6 @@
 import { ApifyClient } from 'apify-client';
 import { normalizeTikTokItem, RawTikTokItem } from './normalize';
+import { isInternalAccount } from './internal_exclusion';
 import { L2IngestRequest } from '../../types';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -171,6 +172,30 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         // Enforce the hard cap (post-deduplication)
         if (normalizedItems.length >= maxSignals) {
             break;
+        }
+
+        if (isInternalAccount(item.author || item.authorMeta || item.nickname)) {
+            let authorName = '';
+            let authorId = '';
+            
+            const author = item.author || item.authorMeta || item.nickname;
+            if (typeof author === 'string') {
+                authorName = author;
+            } else if (author && typeof author === 'object') {
+                authorName = author.uniqueId || author.username || author.nickname || author.name || author.secUid || '';
+                authorId = author.id || author.user_id || author.secUid || author.uid || '';
+            }
+
+            console.log(JSON.stringify({
+                event: "signal_excluded_internal",
+                timestamp: new Date().toISOString(),
+                source: "tiktok",
+                author_username: authorName.replace('@', ''),
+                author_id: authorId || "unknown",
+                reason: "internal_account",
+                status: "ok"
+            }));
+            continue; // Prevent further processing
         }
 
         try {

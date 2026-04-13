@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { isInternalAccount } from '../ingestion/tiktok/internal_exclusion';
 
 export interface CommentExtractionExpansion {
     extract(seedSignal: any): any[];
@@ -31,6 +32,27 @@ export class CommentExtractor implements CommentExtractionExpansion {
         
         // Take up to maxComments from the parent
         for (const comment of rawComments.slice(0, this.maxComments)) {
+            if (isInternalAccount(comment.author || comment.user || comment.nickname || comment.author_name)) {
+                let authorName = '';
+                let authorId = '';
+                const author = comment.author || comment.user || comment.nickname || comment.author_name;
+                if (typeof author === 'string') { authorName = author; }
+                else if (author && typeof author === 'object') {
+                    authorName = author.uniqueId || author.username || author.nickname || author.name || author.secUid || '';
+                    authorId = author.id || author.user_id || author.secUid || author.uid || '';
+                }
+                console.log(JSON.stringify({
+                    event: "signal_excluded_internal",
+                    timestamp: new Date().toISOString(),
+                    source: "tiktok",
+                    author_username: authorName.replace('@', ''),
+                    author_id: authorId || "unknown",
+                    reason: "internal_account",
+                    status: "ok"
+                }));
+                continue;
+            }
+
             // Normalize into a format compatible with TikTok normalization logic
             comments.push({
                 ...comment,

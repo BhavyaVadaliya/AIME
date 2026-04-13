@@ -12,8 +12,12 @@
         "integrativemedicine",
         "nutritionist"
     ],
-    "accounts": [
-        "@gimacademy"
+    "accounts": [],
+    "excluded_accounts": [
+        {
+            "username": "gimacademy",
+            "user_id": "1234567890"
+        }
     ],
     "fields": [
         "id",

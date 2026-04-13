@@ -1,4 +1,5 @@
 import { normalizeTikTokItem, RawTikTokItem } from './normalize';
+import { isInternalAccount } from './internal_exclusion';
 import { L2IngestRequest } from '../../types';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -53,6 +54,27 @@ export async function runExpandedTikTokHarvest(): Promise<L2IngestRequest[]> {
     // For expanded discovery, we only return the *expanded* items to keep paths clean
     // or we can returned combined; here we return the expanded items to confirm diversity specifically.
     const uniqueExpanded = expandedRaw.filter(item => {
+        if (isInternalAccount(item.author || item.authorMeta || item.nickname)) {
+            let authorName = '';
+            let authorId = '';
+            const author = item.author || item.authorMeta || item.nickname;
+            if (typeof author === 'string') { authorName = author; }
+            else if (author && typeof author === 'object') {
+                authorName = author.uniqueId || author.username || author.nickname || author.name || author.secUid || '';
+                authorId = author.id || author.user_id || author.secUid || author.uid || '';
+            }
+            console.log(JSON.stringify({
+                event: "signal_excluded_internal",
+                timestamp: new Date().toISOString(),
+                source: "tiktok",
+                author_username: authorName.replace('@', ''),
+                author_id: authorId || "unknown",
+                reason: "internal_account",
+                status: "ok"
+            }));
+            return false;
+        }
+
         const sid = item.id || item.video_id;
         if (!sid || seenIds.has(sid)) return false;
         seenIds.add(sid);
