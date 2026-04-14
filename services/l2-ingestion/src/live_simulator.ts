@@ -5,16 +5,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const patterns = [
-    { text: "Need help with medical billing certification problem", cat: "Monetization", type: "Problem" },
-    { text: "How do I start a career in nutrition?", cat: "Professional Pathway", type: "Question" },
-    { text: "Download my free macro tracking guide", cat: "Monetization", type: "Offer" },
-    { text: "My healthy meal prep for the week", cat: "Lifestyle", type: "Content" },
-    { text: "Check out this limited time discount on protein", cat: "Promotion", type: "CTA" },
-    { text: "Explaining the keto diet for beginners", cat: "Education", type: "Content" },
-    { text: "Follow me for daily gym motivation", cat: "Engagement", type: "CTA" },
-    { text: "Problem with the clinical software login", cat: "Professional Pathway", type: "Problem" },
-    { text: "Why is metabolic health important?", cat: "Education", type: "Question" },
-    { text: "Link in bio for my transformation program", cat: "Monetization", type: "CTA" }
+    { text: "Struggling with clinical internship placement queries", cat: "Professional Pathway", type: "Problem" },
+    { text: "Join my masterclass on holistic wellness and diet", cat: "Monetization", type: "Offer" },
+    { text: "New research: intermittent fasting vs circadian rhythm", cat: "Education", type: "Content" },
+    { text: "What is the best way to study for the RD exam?", cat: "Professional Pathway", type: "Question" },
+    { text: "5 tips for reducing inflammatory markers with food", cat: "Education", type: "Content" },
+    { text: "Affiliate link for my favorite organic greens powder", cat: "Monetization", type: "CTA" },
+    { text: "Unboxing my new medical nutrition therapy toolkit", cat: "Lifestyle", type: "Content" },
+    { text: "Reviewing the top 3 health coaching certifications", cat: "Professional Pathway", type: "Content" },
+    { text: "DM me for personalized fitness coaching plans", cat: "Monetization", type: "CTA" },
+    { text: "Is apple cider vinegar actually good for digestion?", cat: "Education", type: "Question" }
 ];
 
 async function runSimulator() {

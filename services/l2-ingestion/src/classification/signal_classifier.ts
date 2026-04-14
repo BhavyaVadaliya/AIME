@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 export type PrimaryCategory = 'Monetization' | 'Engagement' | 'Professional Pathway' | 'Education' | 'Lifestyle' | 'Promotion' | 'UNCLASSIFIED';
 export type SignalType = 'Content' | 'Question' | 'Problem' | 'Offer' | 'CTA';
 export type ContextTag = 'Clinical' | 'Coaching' | 'Fitness' | 'General Wellness';
@@ -20,7 +23,7 @@ export function classifySignal(text: string): SignalClassification {
 
   if (t.includes('price') || t.includes('cost') || t.includes('buy') || t.includes('earn')) {
     primaryCategory = 'Monetization';
-  } else if (t.includes('how do i become') || t.includes('certification') || t.includes('career') || t.includes('professional')) {
+  } else if (t.includes('become') || t.includes('certification') || t.includes('certified') || t.includes('career') || t.includes('professional')) {
     primaryCategory = 'Professional Pathway';
   } else if (t.includes('learn') || t.includes('course') || t.includes('training') || t.includes('study')) {
     primaryCategory = 'Education';
@@ -71,7 +74,43 @@ export function classifySignal(text: string): SignalClassification {
     }
   }
 
-  // 3. CONTEXT TAGS (Multi-assignment)
+  // 3️⃣ Question-Category Coverage Improvement
+  if (primaryCategory === 'UNCLASSIFIED' && signalType === 'Question') {
+    try {
+      // Config-driven approach for multi-tenant readiness
+      const configPath = path.resolve(process.cwd(), 'config', 'classification', 'question_category_mapping.json');
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const professionalKeywords = config.professional_pathway_keywords || [];
+        const monetizationKeywords = config.monetization_keywords || [];
+
+        const containsKeyword = (keywords: string[]): boolean =>
+          keywords.some(keyword => t.includes(keyword.toLowerCase()));
+
+        if (containsKeyword(professionalKeywords)) {
+          primaryCategory = 'Professional Pathway';
+        } else if (containsKeyword(monetizationKeywords)) {
+          primaryCategory = 'Monetization';
+        } else {
+          primaryCategory = 'Education';
+        }
+      } else {
+        // Hardcoded safety fallback if config missing
+        if (t.includes('career') || t.includes('certification') || t.includes('course') || t.includes('become')) {
+          primaryCategory = 'Professional Pathway';
+        } else if (t.includes('cost') || t.includes('price') || t.includes('price')) {
+          primaryCategory = 'Monetization';
+        } else {
+          primaryCategory = 'Education';
+        }
+      }
+    } catch (e) {
+      // Robustness: fallback to Education if parsing fails
+      primaryCategory = 'Education';
+    }
+  }
+
+  // 4. CONTEXT TAGS (Multi-assignment)
   const contextTags: ContextTag[] = [];
   if (t.includes('patient') || t.includes('clinical') || t.includes('diagnosis')) {
     contextTags.push('Clinical');
