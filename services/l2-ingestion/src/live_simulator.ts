@@ -5,16 +5,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const patterns = [
-    { text: "Struggling with clinical internship placement queries", cat: "Professional Pathway", type: "Problem" },
-    { text: "Join my masterclass on holistic wellness and diet", cat: "Monetization", type: "Offer" },
-    { text: "New research: intermittent fasting vs circadian rhythm", cat: "Education", type: "Content" },
-    { text: "What is the best way to study for the RD exam?", cat: "Professional Pathway", type: "Question" },
-    { text: "5 tips for reducing inflammatory markers with food", cat: "Education", type: "Content" },
-    { text: "Affiliate link for my favorite organic greens powder", cat: "Monetization", type: "CTA" },
-    { text: "Unboxing my new medical nutrition therapy toolkit", cat: "Lifestyle", type: "Content" },
-    { text: "Reviewing the top 3 health coaching certifications", cat: "Professional Pathway", type: "Content" },
-    { text: "DM me for personalized fitness coaching plans", cat: "Monetization", type: "CTA" },
-    { text: "Is apple cider vinegar actually good for digestion?", cat: "Education", type: "Question" }
+    { text: "how much does the certification course cost?", cat: "Monetization", type: "Question" },
+    { text: "how do I become a certified nutritionist?", cat: "Professional Pathway", type: "Question" },
+    { text: "what is the price for the clinical training program?", cat: "Monetization", type: "Question" },
+    { text: "are there any career opportunities in healthcare training?", cat: "Professional Pathway", type: "Question" },
+    { text: "is intermittent fasting good for fat loss?", cat: "Education", type: "Question" },
+    { text: "can you explain the science of glucose monitoring?", cat: "Education", type: "Question" },
+    { text: "where can I buy the dietitian exam prep kit?", cat: "Monetization", type: "Question" },
+    { text: "how do I enroll in your nutrition coaching program?", cat: "Monetization", type: "Question" },
+    { text: "is the RD credential required for this career?", cat: "Professional Pathway", type: "Question" },
+    { text: "what is the best way to improve metabolic health?", cat: "Education", type: "Question" }
 ];
 
 async function runSimulator() {
