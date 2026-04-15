@@ -74,11 +74,11 @@ export function classifySignal(text: string): SignalClassification {
     }
   }
 
-  // 3️⃣ Question-Category Coverage Improvement
+  // 3️⃣ Question-Category Coverage Improvement (Hotfixed Path)
   if (primaryCategory === 'UNCLASSIFIED' && signalType === 'Question') {
     try {
       // Config-driven approach for multi-tenant readiness
-      const configPath = path.resolve(process.cwd(), 'config', 'classification', 'question_category_mapping.json');
+      const configPath = path.resolve(__dirname, '..', '..', '..', '..', 'config', 'classification', 'question_category_mapping.json');
       if (fs.existsSync(configPath)) {
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         const professionalKeywords = config.professional_pathway_keywords || [];
@@ -96,16 +96,15 @@ export function classifySignal(text: string): SignalClassification {
         }
       } else {
         // Hardcoded safety fallback if config missing
-        if (t.includes('career') || t.includes('certification') || t.includes('course') || t.includes('become')) {
+        if (t.includes('career') || t.includes('certification') || t.includes('certified') || t.includes('course') || t.includes('become')) {
           primaryCategory = 'Professional Pathway';
-        } else if (t.includes('cost') || t.includes('price') || t.includes('price')) {
+        } else if (t.includes('cost') || t.includes('price')) {
           primaryCategory = 'Monetization';
         } else {
           primaryCategory = 'Education';
         }
       }
     } catch (e) {
-      // Robustness: fallback to Education if parsing fails
       primaryCategory = 'Education';
     }
   }
