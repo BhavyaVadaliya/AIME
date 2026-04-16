@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { L2Bundle } from '../types';
-import { isDuplicateSignal, logDeduplication } from '../deduplication/signal_deduper';
 
 export interface LifecycleReport {
     signal_id: string;
@@ -81,23 +80,13 @@ export class LifecycleReporter {
 
     /**
      * Logs the full lifecycle report for audit purposes.
-     * Incorporates deduplication (S11-T1).
      */
-    logLifecycle(bundle: L2Bundle, platform: string = 'unknown', authorId: string = 'unknown'): void {
+    logLifecycle(bundle: L2Bundle): void {
         try {
-            const text = bundle.structured_post?.raw_text || '';
-            const timestamp = new Date().toISOString();
-
-            // Perform Deduplication Check (Composite Key: platform + author_id + text_hash + window)
-            if (isDuplicateSignal(platform, authorId, text, timestamp)) {
-                logDeduplication(bundle.signal_id, platform, authorId);
-                return; // Suppress further logging/persistence for duplicates
-            }
-
             const report = this.generateReport(bundle);
             const entry = {
                 event: "signal_lifecycle_report",
-                timestamp: timestamp,
+                timestamp: new Date().toISOString(),
                 ...report
             };
             

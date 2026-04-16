@@ -95,12 +95,7 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
     };
 
     const finalBundle = postBuilder.build(bundle, rawText);
-    
-    // Extract enrichment for deduplication check
-    const platform = req.source || 'unknown';
-    const authorId = req.metadata?.author_id || 'unknown';
-    
-    reporter.logLifecycle(finalBundle, platform, authorId);
+    reporter.logLifecycle(finalBundle);
     
     return finalBundle;
 };

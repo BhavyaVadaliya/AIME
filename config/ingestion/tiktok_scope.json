@@ -1,5 +1,5 @@
 {
-    "max_signals_per_batch": 25,
+    "max_signals_per_batch": 50,
     "hashtags": [
         "nutritioneducation",
         "clinicalnutrition",

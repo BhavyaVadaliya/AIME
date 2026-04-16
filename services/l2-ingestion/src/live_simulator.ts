@@ -5,53 +5,38 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const patterns = [
-    { text: "Best plant-based protein sources for muscle recovery", authorId: "nutrition_pro", cat: "Education", type: "Content" },
-    { text: "Best plant-based protein sources for muscle recovery", authorId: "nutrition_pro", cat: "Education", type: "Content" }, // Duplicate
-    { text: "How much does a private nutrition consultation cost?", authorId: "wellness_seeker", cat: "Monetization", type: "Question" },
-    { text: "How much does a private nutrition consultation cost?", authorId: "wellness_seeker", cat: "Monetization", type: "Question" }, // Duplicate
-    { text: "Latest studies on vitamin D and immune function", authorId: "science_daily", cat: "Education", type: "Content" },
-    { text: "Latest studies on vitamin D and immune function", authorId: "science_daily", cat: "Education", type: "Content" }, // Duplicate
-    { text: "What is the best way to become a pediatric dietitian?", authorId: "student_rd", cat: "Professional Pathway", type: "Question" },
-    { text: "What is the best way to become a pediatric dietitian?", authorId: "student_rd", cat: "Professional Pathway", type: "Question" }, // Duplicate
-    { text: "Sign up for our clinical nutrition webinar this Friday", authorId: "academy_hub", cat: "Monetization", type: "Offer" },
-    { text: "Sign up for our clinical nutrition webinar this Friday", authorId: "academy_hub", cat: "Monetization", type: "Offer" }  // Duplicate
+    { text: "how much does the certification course cost?", cat: "Monetization", type: "Question" },
+    { text: "how do I become a certified nutritionist?", cat: "Professional Pathway", type: "Question" },
+    { text: "what is the price for the clinical training program?", cat: "Monetization", type: "Question" },
+    { text: "are there any career opportunities in healthcare training?", cat: "Professional Pathway", type: "Question" },
+    { text: "is intermittent fasting good for fat loss?", cat: "Education", type: "Question" },
+    { text: "can you explain the science of glucose monitoring?", cat: "Education", type: "Question" },
+    { text: "where can I buy the dietitian exam prep kit?", cat: "Monetization", type: "Question" },
+    { text: "how do I enroll in your nutrition coaching program?", cat: "Monetization", type: "Question" },
+    { text: "is the RD credential required for this career?", cat: "Professional Pathway", type: "Question" },
+    { text: "what is the best way to improve metabolic health?", cat: "Education", type: "Question" }
 ];
 
 async function runSimulator() {
     load_gime_v0_1();
-    const logPath = path.resolve(path.join(__dirname, "..", "..", "..", "l2_logs.txt"));
     
-    console.log("=== TikTok Shadow Stream Simulator (UNIQUE WAVE) ===");
-    console.log("Generating 50 unique signals for presentation...");
-
-    const uniqueTopics = [
-        "Metabolic health research", "Clinical nutrition case study", "Pediatric dietetics pathway",
-        "Sports nutrition recovery tips", "Gut-brain axis explained", "Intermittent fasting methodology",
-        "Hormonal health and diet", "Inflammation reduction strategies", "Medication-nutrient interactions",
-        "Community health outreach program"
-    ];
+    console.log("=== TikTok Shadow Stream Simulator (LIVE) ===");
+    console.log("Pushing a new signal every 5 seconds...");
 
     let count = 0;
     while (count < 50) {
-        const topic = uniqueTopics[count % uniqueTopics.length];
-        const id = `live-wave5-${Date.now()}-${count}`;
-        
-        // Ensure text is unique by appending the count
-        const text = `${topic} - Update #${count + 1}: Comprehensive analysis of new clinical findings.`;
+        const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+        const id = `live-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         
         const sample: L2IngestRequest = {
             correlation_id: `corr-${id}`,
             signal_id: id,
             source: "tiktok",
-            raw_text: text,
-            metadata: {
-                author_id: `presenter_user_${count}`,
-                author: `Scientific Observer ${count + 1}`
-            }
+            raw_text: pattern.text
         };
 
         const bundle = processL2Request(sample);
-        console.log(`[UNIQUE] Pushed: ${id} - Unique Signal #${count + 1}`);
+        console.log(`[LIVE] ${new Date().toLocaleTimeString()} - Pushed: ${id} (${bundle.structured_post?.priority_tier})`);
         
         count++;
     }

@@ -26,13 +26,10 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest {
 
     // Support multiple possible author formats
     let authorName = 'unknown';
-    let authorId = 'unknown';
     if (rawItem.author) {
         authorName = typeof rawItem.author === 'string' ? rawItem.author : (rawItem.author.nickname || rawItem.author.uniqueId || rawItem.author.name || 'unknown');
-        authorId = typeof rawItem.author === 'object' ? (rawItem.author.id || rawItem.author.secUid || rawItem.author.uid || 'unknown') : 'unknown';
     } else if (rawItem.authorMeta) {
         authorName = rawItem.authorMeta.name || rawItem.authorMeta.nickName || 'unknown';
-        authorId = rawItem.authorMeta.id || 'unknown';
     } else if (rawItem.nickname) {
         authorName = rawItem.nickname;
     }
@@ -42,7 +39,6 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest {
         source: "tiktok",
         text: text,
         author: authorName,
-        author_id: authorId,
         timestamp: rawItem.createTimeISO || (rawItem.createTime ? new Date(Number(rawItem.createTime) * 1000).toISOString() : new Date().toISOString()),
         tags: Array.isArray(rawItem.hashtags) 
             ? rawItem.hashtags.map((h: any) => typeof h === 'string' ? h : (h.name || h.title)) 

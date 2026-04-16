@@ -151,7 +151,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     }
 
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    const maxSignals = 25; 
+    const maxSignals = config.max_signals_per_batch || 50; 
     const hashtags = config.hashtags || [];
     const accounts = config.accounts || [];
 
