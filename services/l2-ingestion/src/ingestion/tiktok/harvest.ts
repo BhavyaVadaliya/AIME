@@ -154,6 +154,8 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     const maxSignals = config.max_signals_per_batch || 50; 
     const hashtags = config.hashtags || [];
     const accounts = config.accounts || [];
+    const excludedHashtags = (config.excluded_hashtags || []).map((h: string) => h.toLowerCase());
+    const allowedLanguages = config.language?.allowed || [];
 
     // Fetch live signals from TikTok via Apify
     const rawItems: any[] = await fetchTikTokSignals(hashtags, 75, accounts);
@@ -172,6 +174,40 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         // Enforce the hard cap (post-deduplication)
         if (normalizedItems.length >= maxSignals) {
             break;
+        }
+
+        // 1. LANGUAGE FILTERING
+        if (allowedLanguages.length > 0) {
+            // Apify actors usually return 'language' or 'lang'
+            const itemLang = (item.language || item.lang || '').toLowerCase();
+            if (itemLang && !allowedLanguages.includes(itemLang)) {
+                 console.log(JSON.stringify({
+                    event: "signal_excluded_language",
+                    timestamp: new Date().toISOString(),
+                    signal_id: item.id,
+                    lang: itemLang,
+                    reason: "language_not_allowed"
+                }));
+                continue;
+            }
+        }
+
+        // 2. HASHTAG EXCLUSION
+        if (excludedHashtags.length > 0) {
+            const rawTags = Array.isArray(item.hashtags) ? item.hashtags : [];
+            const itemHashtags = rawTags
+                .filter((h: any) => typeof h === 'string')
+                .map((h: any) => h.toLowerCase());
+                
+            if (itemHashtags.some((h: string) => excludedHashtags.includes(h))) {
+                console.log(JSON.stringify({
+                    event: "signal_excluded_hashtag",
+                    timestamp: new Date().toISOString(),
+                    signal_id: item.id,
+                    reason: "contains_excluded_hashtag"
+                }));
+                continue;
+            }
         }
 
         if (isInternalAccount(item.author || item.authorMeta || item.nickname)) {

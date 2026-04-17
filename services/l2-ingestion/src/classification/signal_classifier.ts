@@ -109,6 +109,28 @@ export function classifySignal(text: string): SignalClassification {
     }
   }
 
+  // 4️⃣ Hashtag-Aware Fallback (Calibration Enhancement)
+  if (primaryCategory === 'UNCLASSIFIED') {
+    try {
+      const hashtags = (t.match(/#(\w+)/g) || []).map(tag => tag.substring(1));
+      const mappingPath = path.resolve(__dirname, '..', '..', '..', '..', 'config', 'classification', 'hashtag_category_mapping.json');
+      
+      if (fs.existsSync(mappingPath)) {
+        const mapping = JSON.parse(fs.readFileSync(mappingPath, 'utf8'));
+        
+        if (hashtags.some(tag => mapping.professional_pathway_hashtags?.includes(tag))) {
+          primaryCategory = 'Professional Pathway';
+        } else if (hashtags.some(tag => mapping.monetization_hashtags?.includes(tag))) {
+          primaryCategory = 'Monetization';
+        } else if (hashtags.some(tag => mapping.education_hashtags?.includes(tag))) {
+          primaryCategory = 'Education';
+        }
+      }
+    } catch (e) {
+      // Skip hashtag mapping on error
+    }
+  }
+
   // 4. CONTEXT TAGS (Multi-assignment)
   const contextTags: ContextTag[] = [];
   if (t.includes('patient') || t.includes('clinical') || t.includes('diagnosis')) {

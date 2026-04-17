@@ -111,13 +111,15 @@ router.post("/signals", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Missing signal_id or raw_text" });
     }
 
+    /* 
     const doc = await Signal.findOneAndUpdate(
       { signal_id: signalData.signal_id },
       { ...signalData, ingested_at: new Date() },
       { upsert: true, new: true }
     );
+    */
 
-    return res.status(201).json({ success: true, id: doc._id });
+    return res.status(201).json({ success: true, message: "Signal logged (DB skip)" });
   } catch (error) {
     console.error("Signal ingest error:", error);
     return res.status(500).json({ error: "Failed to store signal" });

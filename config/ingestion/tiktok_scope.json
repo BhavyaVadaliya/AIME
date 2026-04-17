@@ -1,34 +1,32 @@
 {
-    "max_signals_per_batch": 50,
-    "hashtags": [
-        "nutritioneducation",
-        "clinicalnutrition",
-        "dietitian",
-        "nutritioncourse",
-        "nutritiontraining",
-        "functionalnutrition",
-        "holisticnutrition",
-        "healthcoach",
-        "integrativemedicine",
-        "nutritionist"
-    ],
-    "accounts": [],
-    "excluded_accounts": [
-        {
-            "username": "gimacademy",
-            "user_id": "1234567890"
-        }
-    ],
-    "fields": [
-        "id",
-        "createTime",
-        "text",
-        "author",
-        "stats",
-        "videoUrl"
-    ],
-    "rate_limit_guardrails": {
-        "min_remaining": 5,
-        "backoff_seconds": 60
-    }
+  "hashtags": [
+    "rd2be",
+    "dieteticintern",
+    "registereddietitian",
+    "clinicalnutrition",
+    "nutritioncertification",
+    "nutritioncourse",
+    "healthcoachcertification",
+    "nursecareer",
+    "nurseeducation",
+    "healthcareprofessional",
+    "continuingeducation",
+    "onlinecertification",
+    "careertransition",
+    "nutritiontraining",
+    "dietitianstudent"
+  ],
+  "excluded_hashtags": [
+    "weightloss",
+    "fitnessmotivation",
+    "gymtok",
+    "mealprep",
+    "whatieatinaday",
+    "fatloss",
+    "bodybuilding"
+  ],
+  "max_signals_per_batch": 50,
+  "language": {
+    "allowed": ["en"]
+  }
 }

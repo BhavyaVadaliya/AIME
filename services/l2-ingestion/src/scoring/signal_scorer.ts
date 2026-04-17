@@ -10,9 +10,9 @@ export interface SignalScore {
 }
 
 export interface ScoringConfig {
-    category_weight: Record<string, number>;
-    signal_type_adjustment: Record<string, number>;
-    pattern_boost: Record<string, number>;
+    category_weights: Record<string, number>;
+    type_adjustments: Record<string, number>;
+    pattern_boosts: Record<string, number>;
 }
 
 /**
@@ -36,9 +36,9 @@ export class SignalScorer {
         } catch (e: any) {
             // Default fallback if config fails to load
             this.config = {
-                category_weight: { "Monetization": 3, "Education": 2, "Lifestyle": 1, "UNCLASSIFIED": 0 },
-                signal_type_adjustment: { "Problem": 3, "Question": 2, "Content": 1 },
-                pattern_boost: { "Monetization+CTA": 2, "Monetization+Problem": 2 }
+                category_weights: { "Monetization": 4, "Professional Pathway": 4, "Education": 2, "Engagement": 2, "Lifestyle": 1, "Promotion": 1, "UNCLASSIFIED": 0 },
+                type_adjustments: { "Problem": 3, "Offer": 3, "Question": 2, "CTA": 2, "Content": 1 },
+                pattern_boosts: { "monetization_cta": 2, "monetization_problem": 2, "professional_education": 1, "engagement_monetization": 1 }
             };
         }
     }
@@ -52,29 +52,28 @@ export class SignalScorer {
         const tags = classification.context_tags || [];
 
         // 1. BASE CATEGORY WEIGHT
-        const category_weight = this.config.category_weight[cat] ?? 0;
+        const category_weight = this.config.category_weights[cat] ?? 0;
 
         // 2. SIGNAL TYPE ADJUSTMENT
-        const type_adjustment = this.config.signal_type_adjustment[type] ?? 0;
+        const type_adjustment = this.config.type_adjustments[type] ?? 0;
 
         // 3. PATTERN BOOST
         let pattern_boost = 0;
         
-        // Exact Pattern Matches
-        const combo_tag = `${cat}+${type}`;
-        if (this.config.pattern_boost[combo_tag]) {
-            pattern_boost += this.config.pattern_boost[combo_tag];
+        // Exact Pattern Matches (Normalized to snake_case for config matching)
+        const combo_tag = `${cat.toLowerCase()}_${type.toLowerCase()}`;
+        if (this.config.pattern_boosts[combo_tag]) {
+            pattern_boost += this.config.pattern_boosts[combo_tag];
         }
 
-        // Contextual Logic for Contextual Pattern Boosts
-        // Professional Pathway + Education-context boost
-        if (cat === 'Professional Pathway' && tags.includes('Education')) {
-            pattern_boost += this.config.pattern_boost['Professional Pathway+Education-context'] ?? 0;
+        // Contextual Logic for Contextual Pattern Boosts (e.g. Professional Pathway + Education-related)
+        if (cat === 'Professional Pathway' && tags.some(t => t.includes('Education') || t.includes('Professional'))) {
+            pattern_boost += this.config.pattern_boosts['professional_education'] ?? 0;
         }
 
         // Engagement + Monetization-context boost
-        if (cat === 'Engagement' && tags.includes('Monetization')) {
-            pattern_boost += this.config.pattern_boost['Engagement+Monetization-context'] ?? 0;
+        if (cat === 'Engagement' && tags.includes('Coaching')) {
+            pattern_boost += this.config.pattern_boosts['engagement_monetization'] ?? 0;
         }
 
         const score = category_weight + type_adjustment + pattern_boost;
