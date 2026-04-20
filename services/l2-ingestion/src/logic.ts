@@ -84,6 +84,8 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         correlation_id: req.correlation_id,
         signal_id: req.signal_id,
         l2_version: "v0",
+        source: req.source,
+        metadata: req.metadata,
         topics,
         subtopics,
         context_summary,

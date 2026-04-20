@@ -22,6 +22,13 @@ export interface StructuredPost {
         pattern_boost: number;
     };
     priority_tier?: PriorityTier;
+    source?: {
+        platform: string;
+        username: string;
+        author_id: string;
+        source_url: string;
+        timestamp: string;
+    };
 }
 
 /**
@@ -37,18 +44,37 @@ export class StructuredPostBuilder {
         const signal_score = scorer.computeScore(bundle.signal_id, bundle.classification!);
         const priority_tier = mapper.mapTier(bundle.signal_id, bundle.classification!);
 
+        const source = {
+            platform: bundle.source || 'unknown',
+            username: bundle.metadata?.author || 'unknown',
+            author_id: bundle.metadata?.author_id || 'unknown',
+            source_url: bundle.metadata?.source_url || '',
+            timestamp: bundle.metadata?.timestamp || new Date().toISOString()
+        };
+
         const structured_post: StructuredPost = {
             raw_text: rawText,
             classification: bundle.classification!,
             governance_route: bundle.governance_route!,
             signal_score,
-            priority_tier
+            priority_tier,
+            source
         };
 
         const augmentedBundle = {
             ...bundle,
             structured_post
         };
+
+        // Source Visibility Verification Log
+        console.log(JSON.stringify({
+            event: "source_visibility_attached",
+            signal_id: bundle.signal_id,
+            platform: source.platform,
+            username: source.username,
+            has_url: !!source.source_url,
+            status: "ok"
+        }));
 
         // Consistency Logging
         console.log(JSON.stringify({

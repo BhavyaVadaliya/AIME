@@ -35,15 +35,27 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest {
     }
 
     // Mapping to AIME Canonical Signal Object
+    const authorId = rawItem.author_id || (rawItem.author && typeof rawItem.author === 'object' ? rawItem.author.id || rawItem.author.secUid : '') || rawItem.authorMeta?.id || '';
+    
+    // Ensure source_url is always built
+    let sourceUrl = rawItem.webVideoUrl || rawItem.videoUrl || rawItem.tiktokLink || '';
+    if (!sourceUrl && (rawItem.id || rawItem.video_id)) {
+        const id = rawItem.id || rawItem.video_id;
+        // Construct from handle if available, else generic
+        const handle = (rawItem.author && typeof rawItem.author === 'object' ? rawItem.author.uniqueId : '') || authorName || 'video';
+        sourceUrl = `https://www.tiktok.com/@${handle.replace('@', '')}/video/${id}`;
+    }
+
     const canonicalSignal = {
         source: "tiktok",
         text: text,
         author: authorName,
+        author_id: authorId,
         timestamp: rawItem.createTimeISO || (rawItem.createTime ? new Date(Number(rawItem.createTime) * 1000).toISOString() : new Date().toISOString()),
         tags: Array.isArray(rawItem.hashtags) 
             ? rawItem.hashtags.map((h: any) => typeof h === 'string' ? h : (h.name || h.title)) 
             : [],
-        source_url: rawItem.webVideoUrl || rawItem.videoUrl || rawItem.tiktokLink || '',
+        source_url: sourceUrl,
         metrics: {
             likes: rawItem.diggCount || rawItem.stats?.diggCount || 0,
             comments: rawItem.commentCount || rawItem.stats?.commentCount || 0

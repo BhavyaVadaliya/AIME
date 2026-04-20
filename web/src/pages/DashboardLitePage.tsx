@@ -17,6 +17,13 @@ interface Signal {
             score: number;
         };
         priority_tier: string;
+        source?: {
+            platform: string;
+            username: string;
+            author_id: string;
+            source_url: string;
+            timestamp: string;
+        };
     };
     approval_status?: {
         state: string;
@@ -169,6 +176,27 @@ export const DashboardLitePage: React.FC = () => {
                                         <span className="text-slate-500 font-mono text-[10px]">{signal.signal_id}</span>
                                         <div className="h-1 w-1 rounded-full bg-slate-700" />
                                         <span className="text-slate-500 text-[10px] uppercase font-semibold">{signal.structured_post?.classification.primary_category}</span>
+                                        <div className="h-1 w-1 rounded-full bg-slate-700" />
+                                        {signal.structured_post?.source && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-slate-900 border border-slate-700 text-cyan-400 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
+                                                    {signal.structured_post.source.platform.toUpperCase()}
+                                                </span>
+                                                <span className="text-slate-400 text-[10px] font-medium italic">
+                                                    @{signal.structured_post.source.username}
+                                                </span>
+                                                {signal.structured_post.source.source_url && (
+                                                    <a 
+                                                        href={signal.structured_post.source.source_url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="text-[10px] text-cyan-500 hover:text-cyan-400 underline underline-offset-2 ml-1"
+                                                    >
+                                                        View Source
+                                                    </a>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                     <p className="text-lg text-slate-100 font-medium leading-relaxed mb-4 leading-tight group-hover:text-white transition-colors capitalize">
                                         {signal.structured_post?.raw_text}

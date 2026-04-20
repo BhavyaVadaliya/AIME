@@ -16,6 +16,14 @@ export interface SignalClassification {
     context_tags: string[];
 }
 
+export interface SignalSource {
+    platform: string;
+    username: string;
+    author_id: string;
+    source_url: string;
+    timestamp: string;
+}
+
 export interface L2Bundle {
     correlation_id: string;
     signal_id: string;
@@ -26,6 +34,8 @@ export interface L2Bundle {
     entities: string[];
     confidence: number;
     flags: string[];
+    source?: string;
+    metadata?: any;
     classification?: SignalClassification;
     governance_route?: {
         queue: 'low_risk' | 'higher_risk';
@@ -51,6 +61,7 @@ export interface L2Bundle {
             pattern_boost: number;
         };
         priority_tier?: 'HIGH' | 'MEDIUM' | 'LOW';
+        source?: SignalSource;
     };
     approval_status?: {
         state: 'approved' | 'revoked' | 'pending';
