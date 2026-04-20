@@ -27,6 +27,70 @@
   ],
   "max_signals_per_batch": 50,
   "language": {
-    "allowed": ["en"]
-  }
+    "allowed": [
+      "en"
+    ]
+  },
+  "excluded_phrase_patterns": [
+    "day in the life",
+    "vlog",
+    "grwm",
+    "get ready with me",
+    "what i eat in a day",
+    "spend the day with me",
+    "come with me",
+    "follow me around",
+    "weekly reset",
+    "morning routine",
+    "night routine"
+  ],
+  "priority_phrase_patterns": [
+    "how do i",
+    "how can i",
+    "is it worth it",
+    "what does it cost",
+    "how much does it cost",
+    "how do i become",
+    "can i become",
+    "should i become",
+    "certification",
+    "internship",
+    "salary",
+    "income",
+    "side hustle",
+    "enroll",
+    "program cost",
+    "worth it",
+    "license",
+    "credential",
+    "rd exam",
+    "dietetic internship",
+    "preceptor",
+    "ceu",
+    "continuing education",
+    "healthcare career",
+    "clinical rotation"
+  ],
+  "target_profession_phrase_patterns": [
+    "dietitian",
+    "nutritionist",
+    "registered dietitian",
+    "rd",
+    "rdn",
+    "nurse",
+    "rn",
+    "clinician",
+    "healthcare professional",
+    "medical student",
+    "dietetic intern",
+    "nutrition student"
+  ],
+  "deprioritized_hashtags": [
+    "vlog",
+    "grwm",
+    "whatieatinaday",
+    "dayinthelife",
+    "lifestyle",
+    "routine"
+  ]
 }

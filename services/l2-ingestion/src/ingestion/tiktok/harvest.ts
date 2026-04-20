@@ -4,6 +4,7 @@ import { isInternalAccount } from './internal_exclusion';
 import { L2IngestRequest } from '../../types';
 import * as fs from 'fs';
 import * as path from 'path';
+import { refineIntent } from './intent_refinement';
 
 const client = new ApifyClient({
     token: process.env.APIFY_API_TOKEN || 'MISSING_TOKEN',
@@ -178,7 +179,6 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
 
         // 1. LANGUAGE FILTERING
         if (allowedLanguages.length > 0) {
-            // Apify actors usually return 'language' or 'lang'
             const itemLang = (item.language || item.lang || '').toLowerCase();
             if (itemLang && !allowedLanguages.includes(itemLang)) {
                  console.log(JSON.stringify({
@@ -210,6 +210,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
             }
         }
 
+        // 3. INTERNAL ACCOUNT EXCLUSION
         if (isInternalAccount(item.author || item.authorMeta || item.nickname)) {
             let authorName = '';
             let authorId = '';
@@ -231,7 +232,16 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
                 reason: "internal_account",
                 status: "ok"
             }));
-            continue; // Prevent further processing
+            continue;
+        }
+
+        // 4. INTENT REFINEMENT (Discovery-Stage Filtering)
+        const rawText = item.text || item.desc || item.title || "";
+        const intent = refineIntent(rawText, item.id);
+        
+        if (intent.category === 'excluded_low_intent') {
+            // Signal skipped according to dev package instruction
+            continue;
         }
 
         try {
@@ -247,14 +257,17 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
                 status: 'ok'
             }));
 
-            console.log(JSON.stringify({
-                event: 'tiktok_harvest_item',
-                timestamp: new Date().toISOString(),
-                source: 'tiktok',
-                source_id: item.id,
-                ingestion_status: 'accepted',
-                governance_status: 'passed'
-            }));
+            // Log if prioritized
+            if (intent.category === 'priority_candidate') {
+                console.log(JSON.stringify({
+                  event: "signal_prioritized_intent",
+                  timestamp: new Date().toISOString(),
+                  signal_id: normalized.signal_id,
+                  reason: "priority_or_mixed_match",
+                  matched_pattern: intent.matched_priority_pattern || intent.matched_exclusion_pattern,
+                  status: "ok"
+                }));
+            }
 
         } catch (error: any) {
             console.log(JSON.stringify({
