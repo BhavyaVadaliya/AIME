@@ -161,7 +161,6 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     // Fetch live signals from TikTok via Apify
     const rawItems: any[] = await fetchTikTokSignals(hashtags, 75, accounts);
 
-    // DEDUPLICATION: Exact ID Match (Pre-normalization)
     const seenIds = new Set();
     const uniqueRawItems = rawItems.filter(item => {
         if (!item.id || seenIds.has(item.id)) return false;
@@ -172,7 +171,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     const normalizedItems: L2IngestRequest[] = [];
     
     for (const item of uniqueRawItems) {
-        // Enforce the hard cap (post-deduplication)
+        // Enforce the hard cap
         if (normalizedItems.length >= maxSignals) {
             break;
         }

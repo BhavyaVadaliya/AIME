@@ -42,7 +42,7 @@ export class StructuredPostBuilder {
      */
     build(bundle: L2Bundle, rawText: string): L2Bundle {
         const signal_score = scorer.computeScore(bundle.signal_id, bundle.classification!);
-        const priority_tier = mapper.mapTier(bundle.signal_id, bundle.classification!);
+        const priority_tier = mapper.mapTier(bundle.signal_id, bundle.classification!, signal_score?.score);
 
         const source = {
             platform: bundle.source || 'unknown',

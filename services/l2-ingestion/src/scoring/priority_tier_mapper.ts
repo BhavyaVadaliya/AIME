@@ -17,6 +17,10 @@ export interface PriorityConfig {
         categories: string[];
         generic_content_cap: boolean;
     };
+    score_thresholds: {
+        high: number;
+        medium: number;
+    };
 }
 
 /**
@@ -48,16 +52,23 @@ export class PriorityTierMapper {
     }
 
     /**
-     * Maps classification context to a deterministic priority tier.
-     * Execution Order:
-     * 1. Problem override -> HIGH
-     * 2. Category Minimums -> MEDIUM
-     * 3. High Category+Type combos
-     * 4. Medium Category+Type combos
-     * 5. Low Category rules
-     * 6. Generic content cap
+     * Maps classification context and score to a deterministic priority tier.
+     * Logic:
+     * 1. If score >= HIGH threshold -> HIGH
+     * 2. If score >= MEDIUM threshold -> MEDIUM
+     * 3. Fallback to category/type rules
      */
-    mapTier(signalId: string, classification: SignalClassification): PriorityTier {
+    mapTier(signalId: string, classification: SignalClassification, score?: number): PriorityTier {
+        // 1. Score-based Thresholds (Priority)
+        if (score !== undefined) {
+            if (score >= this.config.score_thresholds.high) {
+                return 'HIGH';
+            }
+            if (score >= this.config.score_thresholds.medium) {
+                return 'MEDIUM';
+            }
+        }
+
         const cat = classification.primary_category;
         const type = classification.signal_type;
         
