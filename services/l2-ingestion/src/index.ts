@@ -100,13 +100,17 @@ app.post('/v1/l2/ingest', (req: Request, res: Response): void => {
 
 import { routeTikTokHarvest } from './ingestion/tiktok/route';
 
-app.post('/v1/ingestion/tiktok/harvest', async (req: Request, res: Response) => {
-    try {
-        await routeTikTokHarvest();
-        res.status(202).json({ status: 'accepted', message: 'TikTok harvest started' });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to start TikTok harvest', detail: String(error) });
-    }
+app.post('/v1/ingestion/tiktok/harvest', (req: Request, res: Response) => {
+    // Trigger harvest asynchronously to avoid blocking the HTTP response
+    // This prevents timeouts on cloud platforms like Render/Vercel
+    routeTikTokHarvest().catch(error => {
+        console.error('Background TikTok harvest failed:', error);
+    });
+    
+    res.status(202).json({ 
+        status: 'accepted', 
+        message: 'TikTok harvest started in background' 
+    });
 });
 
 app.listen(PORT, () => {

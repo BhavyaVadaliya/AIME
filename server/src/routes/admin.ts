@@ -63,24 +63,29 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
   try {
-    const harvestUrl = process.env.HARVEST_URL || 'http://localhost:3001/v1/ingestion/tiktok/harvest';
-    console.log(`[Admin] Triggering utility scan at: ${harvestUrl}`);
+    // Resilient URL detection:
+    // 1. HARVEST_URL (Explicitly set in cloud env)
+    // 2. l2-ingestion:3001 (Internal Docker hostname)
+    // 3. localhost:3001 (Local dev fallback)
+    const harvestUrl = process.env.HARVEST_URL || 
+                      (process.env.NODE_ENV === 'production' ? 'http://l2-ingestion:3001/v1/ingestion/tiktok/harvest' : 'http://localhost:3001/v1/ingestion/tiktok/harvest');
     
-    // Call the existing harvest process in the ingestion service
-    // This will wait for the harvest to complete before returning
-    const response = await axios.post(harvestUrl);
+    console.log(`[Admin] Utility scan trigger: Calling ${harvestUrl}`);
     
-    console.log(`[Admin] Scan complete:`, response.data);
+    // Call the harvest process with a timeout to prevent hanging
+    const response = await axios.post(harvestUrl, {}, { timeout: 15000 });
+    
     return res.json({ 
         status: 'success', 
-        message: 'Scan completed successfully',
+        message: 'Scan triggered successfully',
         data: response.data 
     });
   } catch (error: any) {
-    console.error("Scan trigger error:", error.message);
+    console.error(`[Admin] Scan trigger FAILED: ${error.message}`);
     return res.status(500).json({ 
         error: "Failed to trigger scan", 
-        detail: error.response?.data || error.message 
+        detail: error.response?.data || error.message,
+        hint: "If this is a live site, ensure the HARVEST_URL environment variable is set to the correct ingestion service endpoint."
     });
   }
 });
