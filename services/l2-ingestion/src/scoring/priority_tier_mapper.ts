@@ -46,7 +46,8 @@ export class PriorityTierMapper {
             this.config = {
                 high: { category_and_type: [], type_override: ["Problem"] },
                 medium: { category_and_type: [], category_minimum: ["Monetization"] },
-                low: { categories: ["Lifestyle"], generic_content_cap: true }
+                low: { categories: ["Lifestyle"], generic_content_cap: true },
+                score_thresholds: { high: 8, medium: 5 }
             };
         }
     }

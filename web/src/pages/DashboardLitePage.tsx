@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Filter, BarChart3, Clock, AlertTriangle, CheckCircle2, Layers, Box, Info } from 'lucide-react';
+import { Shield, Filter, BarChart3, Clock, AlertTriangle, CheckCircle2, Layers, Box, Info, Play, Loader2 } from 'lucide-react';
 import { SignalDetailPanel } from '../components/SignalDetailPanel';
 
 interface Signal {
@@ -39,6 +39,7 @@ export const DashboardLitePage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showLowValue, setShowLowValue] = useState(false);
     const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
+    const [scanStatus, setScanStatus] = useState<'Idle' | 'Running' | 'Complete' | 'Failed'>('Idle');
 
     const fetchData = async () => {
         try {
@@ -58,6 +59,31 @@ export const DashboardLitePage: React.FC = () => {
         } catch (error) {
             console.error('Error fetching signals:', error);
             setLoading(false);
+        }
+    };
+
+    const handleRunScan = async () => {
+        if (scanStatus === 'Running') return;
+        
+        setScanStatus('Running');
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+            const response = await fetch(`${apiUrl}/admin/governance/scan`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                setScanStatus('Complete');
+                fetchData(); // Auto-refresh on completion
+                setTimeout(() => setScanStatus('Idle'), 3000);
+            } else {
+                setScanStatus('Failed');
+                setTimeout(() => setScanStatus('Idle'), 3000);
+            }
+        } catch (error) {
+            console.error('Scan error:', error);
+            setScanStatus('Failed');
+            setTimeout(() => setScanStatus('Idle'), 3000);
         }
     };
 
@@ -127,6 +153,36 @@ export const DashboardLitePage: React.FC = () => {
                     <div className="text-center">
                         <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">High Priority</p>
                         <p className="text-2xl font-mono text-red-400">{metrics.high}</p>
+                    </div>
+
+                    {/* Run Scan Utility Button */}
+                    <div className="flex items-center gap-4 ml-6 pl-6 border-l border-slate-700">
+                        <button
+                            onClick={handleRunScan}
+                            disabled={scanStatus === 'Running'}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
+                                scanStatus === 'Running' 
+                                ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
+                                : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-900/20 active:scale-95'
+                            }`}
+                        >
+                            {scanStatus === 'Running' ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Play className="w-4 h-4 fill-current" />
+                            )}
+                            Run Scan
+                        </button>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Scan Status</span>
+                            <span className={`text-xs font-mono font-bold ${
+                                scanStatus === 'Running' ? 'text-amber-400' :
+                                scanStatus === 'Complete' ? 'text-emerald-400' :
+                                scanStatus === 'Failed' ? 'text-red-400' : 'text-slate-400'
+                            }`}>
+                                {scanStatus}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </header>

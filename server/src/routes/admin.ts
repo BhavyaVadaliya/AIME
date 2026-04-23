@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import axios from "axios";
 import Signal from "../models/Signal.js";
 import fs from "fs";
 import path from "path";
@@ -52,6 +53,35 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Governance signals read error:", error);
     return res.status(500).json({ error: "Failed to read governance logs" });
+  }
+});
+
+/**
+ * POST /admin/governance/scan
+ * Utility patch to trigger the existing TikTok harvest process.
+ * Reuses the existing ingestion service endpoint.
+ */
+router.post("/governance/scan", async (req: Request, res: Response) => {
+  try {
+    const harvestUrl = process.env.HARVEST_URL || 'http://localhost:3001/v1/ingestion/tiktok/harvest';
+    console.log(`[Admin] Triggering utility scan at: ${harvestUrl}`);
+    
+    // Call the existing harvest process in the ingestion service
+    // This will wait for the harvest to complete before returning
+    const response = await axios.post(harvestUrl);
+    
+    console.log(`[Admin] Scan complete:`, response.data);
+    return res.json({ 
+        status: 'success', 
+        message: 'Scan completed successfully',
+        data: response.data 
+    });
+  } catch (error: any) {
+    console.error("Scan trigger error:", error.message);
+    return res.status(500).json({ 
+        error: "Failed to trigger scan", 
+        detail: error.response?.data || error.message 
+    });
   }
 });
 
