@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Shield, Filter, BarChart3, Clock, AlertTriangle, CheckCircle2, Layers, Box, Info } from 'lucide-react';
+import { SignalDetailPanel } from '../components/SignalDetailPanel';
 
 interface Signal {
     signal_id: string;
@@ -37,6 +38,7 @@ export const DashboardLitePage: React.FC = () => {
     const [filterQueue, setFilterQueue] = useState('All');
     const [loading, setLoading] = useState(true);
     const [showLowValue, setShowLowValue] = useState(false);
+    const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
 
     const fetchData = async () => {
         try {
@@ -182,7 +184,13 @@ export const DashboardLitePage: React.FC = () => {
                 ) : (
                     <>
                         {filteredSignals.filter(({ signal: s }) => !isLowValue(s)).map(({ signal, count }) => (
-                            <SignalRow key={signal.signal_id} signal={signal} count={count} mapCategoryLabel={mapCategoryLabel} />
+                            <SignalRow 
+                                key={signal.signal_id} 
+                                signal={signal} 
+                                count={count} 
+                                mapCategoryLabel={mapCategoryLabel} 
+                                onClick={() => setSelectedSignal(signal)}
+                            />
                         ))}
 
                         {/* Low Value Signals Section */}
@@ -202,7 +210,14 @@ export const DashboardLitePage: React.FC = () => {
                                 {showLowValue && (
                                     <div className="space-y-4 mt-4 opacity-70 grayscale-[0.3]">
                                         {filteredSignals.filter(({ signal: s }) => isLowValue(s)).map(({ signal, count }) => (
-                                            <SignalRow key={signal.signal_id} signal={signal} count={count} mapCategoryLabel={mapCategoryLabel} isLowValue />
+                                            <SignalRow 
+                                                key={signal.signal_id} 
+                                                signal={signal} 
+                                                count={count} 
+                                                mapCategoryLabel={mapCategoryLabel} 
+                                                isLowValue 
+                                                onClick={() => setSelectedSignal(signal)}
+                                            />
                                         ))}
                                     </div>
                                 )}
@@ -211,16 +226,25 @@ export const DashboardLitePage: React.FC = () => {
                     </>
                 )}
             </div>
+
+            <SignalDetailPanel 
+                signal={selectedSignal} 
+                onClose={() => setSelectedSignal(null)} 
+                mapCategoryLabel={mapCategoryLabel} 
+            />
         </div>
     );
 };
 
-const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false }: { signal: Signal, count: number, mapCategoryLabel: (c: string) => string, isLowValue?: boolean }) => {
+const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClick }: { signal: Signal, count: number, mapCategoryLabel: (c: string) => string, isLowValue?: boolean, onClick: () => void }) => {
     const s = signal.structured_post;
     const isSourceUnknown = !s?.source || s.source.platform === 'unknown' || s.source.username === 'unknown';
 
     return (
-        <div className={`group relative bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/50 hover:border-slate-500/50 transition-all duration-300 rounded-2xl p-6 backdrop-blur-md overflow-hidden ${isLowValue ? 'border-dashed' : ''}`}>
+        <div 
+            onClick={onClick}
+            className={`group relative bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/50 hover:border-slate-500/50 transition-all duration-300 rounded-2xl p-6 backdrop-blur-md overflow-hidden cursor-pointer active:scale-[0.99] ${isLowValue ? 'border-dashed' : ''}`}
+        >
             {/* Priority Indicator Line */}
             <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                 s?.priority_tier === 'HIGH' ? 'bg-red-500' : 
