@@ -62,19 +62,15 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  * Reuses the existing ingestion service endpoint.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
-  const env = process.env.NODE_ENV || 'development';
-  const isLocal = env === 'development' || env === 'test';
-  let harvestUrl = '';
-
-  try {
-    // Resilient URL detection:
-    // 1. HARVEST_URL (Explicitly set in cloud env - STRONGLY RECOMMENDED)
-    // 2. l2-ingestion:3001 (Internal hostname for non-local environments)
-    // 3. localhost:3001 (Local dev fallback)
-    harvestUrl = process.env.HARVEST_URL || 
-                 (isLocal ? 'http://localhost:3001/v1/ingestion/tiktok/harvest' : 'https://l2-ingestion-s7.onrender.com/v1/ingestion/tiktok/harvest');
+    // Robust detection: Use request hostname to determine if we are on a live server
+    const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+    let harvestUrl = '';
     
-    console.log(`[Admin] Utility scan trigger [Env: ${env}]: Calling ${harvestUrl}`);
+    try {
+        harvestUrl = process.env.HARVEST_URL || 
+                     (isLocalhost ? 'http://localhost:3001/v1/ingestion/tiktok/harvest' : 'https://l2-ingestion-s7.onrender.com/v1/ingestion/tiktok/harvest');
+    
+    console.log(`[Admin] Utility scan trigger [Host: ${req.hostname}]: Calling ${harvestUrl}`);
     
     // Call the harvest process with a timeout to prevent hanging
     const response = await axios.post(harvestUrl, {}, { timeout: 15000 });
