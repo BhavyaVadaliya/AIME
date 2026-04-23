@@ -2,7 +2,10 @@ import axios from 'axios';
 import { runTikTokHarvest } from './harvest';
 import { processL2Request } from '../../logic';
 
-const CORE_API_URL = process.env.CORE_API_URL || 'http://localhost:4000/api';
+const CORE_API_URL = process.env.CORE_API_URL || 
+                    (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
+                     ? 'https://aime-gw.onrender.com/api' 
+                     : 'http://localhost:4000/api');
 
 export async function routeTikTokHarvest() {
     let batchSize = 0;

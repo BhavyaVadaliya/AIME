@@ -71,7 +71,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     const isLocal = env === 'development' || env === 'test';
     
     const harvestUrl = process.env.HARVEST_URL || 
-                      (isLocal ? 'http://localhost:3001/v1/ingestion/tiktok/harvest' : 'http://l2-ingestion:3001/v1/ingestion/tiktok/harvest');
+                      (isLocal ? 'http://localhost:3001/v1/ingestion/tiktok/harvest' : 'https://l2-ingestion-s7.onrender.com/v1/ingestion/tiktok/harvest');
     
     console.log(`[Admin] Utility scan trigger [Env: ${env}]: Calling ${harvestUrl}`);
     
