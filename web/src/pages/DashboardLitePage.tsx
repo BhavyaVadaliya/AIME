@@ -80,9 +80,10 @@ export const DashboardLitePage: React.FC = () => {
                 const errorData = await response.json();
                 console.error('Scan failed:', errorData);
                 setScanStatus('Failed');
-                // Show a detailed alert if there's a hint (helps debugging live sites)
+                
+                // Show a detailed alert if there's a hint
                 if (errorData.hint) {
-                    alert(`Scan Failed: ${errorData.detail}\n\nHint: ${errorData.hint}`);
+                    alert(`Scan Failed: ${errorData.detail}\nCode: ${errorData.code || 'N/A'}\nURL: ${errorData.attempted_url}\n\nHint: ${errorData.hint}`);
                 }
                 setTimeout(() => setScanStatus('Idle'), 3000);
             }

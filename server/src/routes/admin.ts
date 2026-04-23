@@ -84,13 +84,15 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         data: response.data 
     });
   } catch (error: any) {
-    const errorMsg = error.response?.data?.error || error.message;
-    console.error(`[Admin] Scan trigger FAILED: ${errorMsg}`);
+    const errorMsg = error.message || 'Unknown Error';
+    console.error(`[Admin] Scan trigger FAILED: ${errorMsg} (${error.code})`);
     
     return res.status(500).json({ 
         error: "Failed to trigger scan", 
         detail: errorMsg,
-        hint: "Live site detected. Ensure the 'HARVEST_URL' environment variable is set in your Render/Vercel dashboard to the correct ingestion service endpoint (e.g. http://l2-ingestion:3001/v1/ingestion/tiktok/harvest)."
+        code: error.code,
+        attempted_url: harvestUrl,
+        hint: "Live site detected. Ensure the 'HARVEST_URL' environment variable is set in your Render dashboard. If using Render Internal Networking, it should be something like http://l2-ingestion:3001/v1/ingestion/tiktok/harvest"
     });
   }
 });
