@@ -64,13 +64,16 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
 router.post("/governance/scan", async (req: Request, res: Response) => {
   try {
     // Resilient URL detection:
-    // 1. HARVEST_URL (Explicitly set in cloud env)
-    // 2. l2-ingestion:3001 (Internal Docker hostname)
+    // 1. HARVEST_URL (Explicitly set in cloud env - STRONGLY RECOMMENDED)
+    // 2. l2-ingestion:3001 (Internal hostname for non-local environments)
     // 3. localhost:3001 (Local dev fallback)
-    const harvestUrl = process.env.HARVEST_URL || 
-                      (process.env.NODE_ENV === 'production' ? 'http://l2-ingestion:3001/v1/ingestion/tiktok/harvest' : 'http://localhost:3001/v1/ingestion/tiktok/harvest');
+    const env = process.env.NODE_ENV || 'development';
+    const isLocal = env === 'development' || env === 'test';
     
-    console.log(`[Admin] Utility scan trigger: Calling ${harvestUrl}`);
+    const harvestUrl = process.env.HARVEST_URL || 
+                      (isLocal ? 'http://localhost:3001/v1/ingestion/tiktok/harvest' : 'http://l2-ingestion:3001/v1/ingestion/tiktok/harvest');
+    
+    console.log(`[Admin] Utility scan trigger [Env: ${env}]: Calling ${harvestUrl}`);
     
     // Call the harvest process with a timeout to prevent hanging
     const response = await axios.post(harvestUrl, {}, { timeout: 15000 });
@@ -81,11 +84,13 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         data: response.data 
     });
   } catch (error: any) {
-    console.error(`[Admin] Scan trigger FAILED: ${error.message}`);
+    const errorMsg = error.response?.data?.error || error.message;
+    console.error(`[Admin] Scan trigger FAILED: ${errorMsg}`);
+    
     return res.status(500).json({ 
         error: "Failed to trigger scan", 
-        detail: error.response?.data || error.message,
-        hint: "If this is a live site, ensure the HARVEST_URL environment variable is set to the correct ingestion service endpoint."
+        detail: errorMsg,
+        hint: "Live site detected. Ensure the 'HARVEST_URL' environment variable is set in your Render/Vercel dashboard to the correct ingestion service endpoint (e.g. http://l2-ingestion:3001/v1/ingestion/tiktok/harvest)."
     });
   }
 });

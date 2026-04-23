@@ -77,12 +77,19 @@ export const DashboardLitePage: React.FC = () => {
                 fetchData(); // Auto-refresh on completion
                 setTimeout(() => setScanStatus('Idle'), 3000);
             } else {
+                const errorData = await response.json();
+                console.error('Scan failed:', errorData);
                 setScanStatus('Failed');
+                // Show a detailed alert if there's a hint (helps debugging live sites)
+                if (errorData.hint) {
+                    alert(`Scan Failed: ${errorData.detail}\n\nHint: ${errorData.hint}`);
+                }
                 setTimeout(() => setScanStatus('Idle'), 3000);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Scan error:', error);
             setScanStatus('Failed');
+            alert(`Scan Error: ${error.message}`);
             setTimeout(() => setScanStatus('Idle'), 3000);
         }
     };
