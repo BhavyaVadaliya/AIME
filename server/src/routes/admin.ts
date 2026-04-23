@@ -62,16 +62,17 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  * Reuses the existing ingestion service endpoint.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
+  const env = process.env.NODE_ENV || 'development';
+  const isLocal = env === 'development' || env === 'test';
+  let harvestUrl = '';
+
   try {
     // Resilient URL detection:
     // 1. HARVEST_URL (Explicitly set in cloud env - STRONGLY RECOMMENDED)
     // 2. l2-ingestion:3001 (Internal hostname for non-local environments)
     // 3. localhost:3001 (Local dev fallback)
-    const env = process.env.NODE_ENV || 'development';
-    const isLocal = env === 'development' || env === 'test';
-    
-    const harvestUrl = process.env.HARVEST_URL || 
-                      (isLocal ? 'http://localhost:3001/v1/ingestion/tiktok/harvest' : 'https://l2-ingestion-s7.onrender.com/v1/ingestion/tiktok/harvest');
+    harvestUrl = process.env.HARVEST_URL || 
+                 (isLocal ? 'http://localhost:3001/v1/ingestion/tiktok/harvest' : 'https://l2-ingestion-s7.onrender.com/v1/ingestion/tiktok/harvest');
     
     console.log(`[Admin] Utility scan trigger [Env: ${env}]: Calling ${harvestUrl}`);
     
@@ -92,7 +93,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         detail: errorMsg,
         code: error.code,
         attempted_url: harvestUrl,
-        hint: "Live site detected. Ensure the 'HARVEST_URL' environment variable is set in your Render dashboard. If using Render Internal Networking, it should be something like http://l2-ingestion:3001/v1/ingestion/tiktok/harvest"
+        hint: `Live site detected [Env: ${env}]. Ensure the 'HARVEST_URL' environment variable is set in your Render dashboard.`
     });
   }
 });
