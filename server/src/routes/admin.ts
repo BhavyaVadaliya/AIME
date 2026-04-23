@@ -62,6 +62,7 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  * Reuses the existing ingestion service endpoint.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
+    const env = process.env.NODE_ENV || 'development';
     let harvestUrl = '';
     
     try {
