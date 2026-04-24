@@ -65,33 +65,49 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     const env = process.env.NODE_ENV || 'development';
     let harvestUrl = '';
     
+    // MULTI-STAGE FAILOVER: Try internal networking first, fall back to public URL
+    const internalUrl = `http://l2-ingestion-s7:3001/v1/harvest`;
+    const publicUrl = `https://l2-ingestion-s7.onrender.com/v1/harvest`;
+    
+    harvestUrl = process.env.HARVEST_URL || internalUrl;
+
     try {
-        // USE INTERNAL RENDER URL: Bypasses public Cloudflare rate limits (429 errors)
-        // The internal service name on Render is usually the same as the public subdomain.
-        harvestUrl = process.env.HARVEST_URL || 'http://l2-ingestion-s7:3001/v1/harvest';
+        console.log(`[Admin] Scan Trigger Attempt 1: ${harvestUrl}`);
+        const response = await axios.post(harvestUrl, {}, { timeout: 10000 });
         
-        console.log(`[Admin] Scan Trigger: Calling INTERNAL URL ${harvestUrl}`);
-    
-    // Call the harvest process with a timeout to prevent hanging
-    const response = await axios.post(harvestUrl, {}, { timeout: 15000 });
-    
-    return res.json({ 
-        status: 'success', 
-        message: 'Scan triggered successfully',
-        data: response.data 
-    });
-  } catch (error: any) {
-    const errorMsg = error.message || 'Unknown Error';
-    console.error(`[Admin] Scan trigger FAILED: ${errorMsg} (${error.code})`);
-    
-    return res.status(500).json({ 
-        error: "Failed to trigger scan", 
-        detail: errorMsg,
-        code: error.code,
-        attempted_url: harvestUrl,
-        hint: `Live site detected [Env: ${env}]. Ensure the 'HARVEST_URL' environment variable is set in your Render dashboard. For Render Internal Networking, use: http://l2-ingestion-s7:3001/v1/harvest`
-    });
-  }
+        return res.json({ 
+            status: 'success', 
+            message: 'Scan triggered successfully (Attempt 1)',
+            data: response.data 
+        });
+    } catch (error: any) {
+        // If internal network fails with ENOTFOUND, try the public URL
+        if (error.code === 'ENOTFOUND' && !process.env.HARVEST_URL) {
+            console.warn(`[Admin] Internal URL failed (${error.code}). Falling back to public URL: ${publicUrl}`);
+            try {
+                harvestUrl = publicUrl;
+                const response = await axios.post(harvestUrl, {}, { timeout: 15000 });
+                return res.json({ 
+                    status: 'success', 
+                    message: 'Scan triggered successfully (Fallback)',
+                    data: response.data 
+                });
+            } catch (fallbackError: any) {
+                error = fallbackError; // Throw the fallback error for the main catch block
+            }
+        }
+        
+        const errorMsg = error.message || 'Unknown Error';
+        console.error(`[Admin] Scan trigger FAILED: ${errorMsg} (${error.code})`);
+        
+        return res.status(500).json({ 
+            error: "Failed to trigger scan", 
+            detail: errorMsg,
+            code: error.code,
+            attempted_url: harvestUrl,
+            hint: `Check Render Dashboard -> l2-ingestion-s7 -> Settings -> 'Internal Service Name'. Ensure it matches exactly.`
+        });
+    }
 });
 
 /**
