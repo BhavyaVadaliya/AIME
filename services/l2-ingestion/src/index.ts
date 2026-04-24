@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { L2IngestRequestSchema } from './types';
 import { processL2Request } from './logic';
 import { load_gime_v0_1, getActiveMapping } from './lens/gime_mapping_loader';
+import { routeTikTokHarvest } from './ingestion/tiktok/route';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -50,6 +51,22 @@ const logEvent = (event: string, correlation_id: string, signal_id: string, stat
 
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', service: 'l2-ingestion' });
+});
+
+// Simplified Harvest Route for Sprint 11 Utility
+app.post('/v1/harvest', (req: Request, res: Response) => {
+    routeTikTokHarvest().catch(error => {
+        console.error('Background TikTok harvest failed:', error);
+    });
+    res.status(202).json({ status: 'accepted', message: 'Scan started' });
+});
+
+// GET version for easy browser testing
+app.get('/v1/harvest', (req: Request, res: Response) => {
+    routeTikTokHarvest().catch(error => {
+        console.error('Background TikTok harvest failed:', error);
+    });
+    res.status(200).json({ status: 'accepted', message: 'Scan triggered via GET' });
 });
 
 app.post('/v1/l2/ingest', (req: Request, res: Response): void => {
@@ -98,20 +115,7 @@ app.post('/v1/l2/ingest', (req: Request, res: Response): void => {
     }
 });
 
-import { routeTikTokHarvest } from './ingestion/tiktok/route';
-
-app.post('/v1/ingestion/tiktok/harvest', (req: Request, res: Response) => {
-    // Trigger harvest asynchronously to avoid blocking the HTTP response
-    // This prevents timeouts on cloud platforms like Render/Vercel
-    routeTikTokHarvest().catch(error => {
-        console.error('Background TikTok harvest failed:', error);
-    });
-    
-    res.status(202).json({ 
-        status: 'accepted', 
-        message: 'TikTok harvest started in background' 
-    });
-});
+// Removed old harvest route from here
 
 app.listen(PORT, () => {
     console.log(`L2 Ingestion Service running on port ${PORT}`);

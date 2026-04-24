@@ -68,7 +68,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     try {
         // PRIMARY FIX: Hardcode the live Render URL as the default to ensure the client demo works.
         // If you need to run this locally, set HARVEST_URL=http://localhost:3001/v1/ingestion/tiktok/harvest in your local .env
-        harvestUrl = process.env.HARVEST_URL || 'https://l2-ingestion-s7.onrender.com/v1/ingestion/tiktok/harvest';
+        harvestUrl = process.env.HARVEST_URL || 'https://l2-ingestion-s7.onrender.com/v1/harvest';
         
         console.log(`[Admin] Scan Trigger: Calling ${harvestUrl}`);
     
