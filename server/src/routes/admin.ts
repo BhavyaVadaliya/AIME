@@ -66,11 +66,11 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     let harvestUrl = '';
     
     try {
-        // PRIMARY FIX: Hardcode the live Render URL as the default to ensure the client demo works.
-        // If you need to run this locally, set HARVEST_URL=http://localhost:3001/v1/ingestion/tiktok/harvest in your local .env
-        harvestUrl = process.env.HARVEST_URL || 'https://l2-ingestion-s7.onrender.com/v1/harvest';
+        // USE INTERNAL RENDER URL: Bypasses public Cloudflare rate limits (429 errors)
+        // The internal service name on Render is usually the same as the public subdomain.
+        harvestUrl = process.env.HARVEST_URL || 'http://l2-ingestion-s7:3001/v1/harvest';
         
-        console.log(`[Admin] Scan Trigger: Calling ${harvestUrl}`);
+        console.log(`[Admin] Scan Trigger: Calling INTERNAL URL ${harvestUrl}`);
     
     // Call the harvest process with a timeout to prevent hanging
     const response = await axios.post(harvestUrl, {}, { timeout: 15000 });
@@ -89,7 +89,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         detail: errorMsg,
         code: error.code,
         attempted_url: harvestUrl,
-        hint: `Live site detected [Env: ${env}]. Ensure the 'HARVEST_URL' environment variable is set in your Render dashboard.`
+        hint: `Live site detected [Env: ${env}]. Ensure the 'HARVEST_URL' environment variable is set in your Render dashboard. For Render Internal Networking, use: http://l2-ingestion-s7:3001/v1/harvest`
     });
   }
 });
