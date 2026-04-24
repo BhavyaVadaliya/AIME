@@ -62,6 +62,7 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  * Reuses the existing ingestion service endpoint.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
+    let harvestUrl = '';
     // BULLETPROOF DETECTION: Handle Local vs Live automatically
     const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
     const defaultLiveUrl = `https://l2-ingestion-s7.onrender.com/v1/harvest`;
