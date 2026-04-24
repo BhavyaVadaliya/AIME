@@ -63,14 +63,17 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
     let harvestUrl = '';
-    // BULLETPROOF DETECTION: Handle Local vs Live automatically
-    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+    // ROBUST DETECTION: Determine if we are running locally or on Render
+    const isLocal = req.hostname === 'localhost' || 
+                    req.hostname === '127.0.0.1' || 
+                    !req.hostname.includes('onrender.com');
+    
     const defaultLiveUrl = `https://l2-ingestion-s7.onrender.com/v1/harvest`;
     const defaultLocalUrl = `http://localhost:3001/v1/harvest`;
     
     harvestUrl = process.env.HARVEST_URL || (isLocal ? defaultLocalUrl : defaultLiveUrl);
 
-    // AUTO-CORRECT: If the URL is just a domain, append the path automatically to prevent 404s
+    // AUTO-CORRECT: Ensure the path is present
     if (!harvestUrl.includes('/v1/harvest')) {
         harvestUrl = harvestUrl.replace(/\/$/, '') + '/v1/harvest';
     }
