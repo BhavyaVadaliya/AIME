@@ -77,13 +77,13 @@ async function runSyntheticScan() {
                 ingestion: { event: "signal_ingested", status: "ok", timestamp: new Date().toISOString() },
                 classification: { 
                     event: "signal_classified", 
-                    primary_category: bundle.structured_post.classification.primary_category,
-                    signal_type: bundle.structured_post.classification.signal_type,
+                    primary_category: bundle.structured_post?.classification.primary_category,
+                    signal_type: bundle.structured_post?.classification.signal_type,
                     timestamp: new Date().toISOString() 
                 },
                 routing: { 
                     event: "governance_queue_routed", 
-                    queue: bundle.structured_post.governance_route.queue, 
+                    queue: bundle.structured_post?.governance_route.queue, 
                     timestamp: new Date().toISOString() 
                 },
                 structured_post: {

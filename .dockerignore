@@ -1,0 +1,9 @@
+node_modules
+dist
+*.log
+.git
+.env
+web/node_modules
+server/node_modules
+services/l2-ingestion/node_modules
+services/rtce-text/node_modules
