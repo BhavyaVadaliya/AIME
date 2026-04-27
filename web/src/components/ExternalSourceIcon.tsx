@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Instagram, Twitter, MessageSquare, Globe } from 'lucide-react';
+import { MessageSquare, Globe } from 'lucide-react';
 
 interface Props {
     platform: string;
@@ -26,8 +26,6 @@ export const ExternalSourceIcon: React.FC<Props> = ({ platform, className = "w-4
         );
     }
 
-    if (p === 'instagram') return <Instagram className={className} />;
-    if (p === 'twitter' || p === 'x') return <Twitter className={className} />;
     if (p === 'reddit') return <MessageSquare className={className} />;
     
     return <Globe className={className} />;
