@@ -63,32 +63,59 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
     let harvestUrl = '';
+    
     // ROBUST DETECTION: Determine if we are running locally or on Render
     const isLocal = req.hostname === 'localhost' || 
                     req.hostname === '127.0.0.1' || 
                     !req.hostname.includes('onrender.com');
     
+    const isRender = !!process.env.RENDER;
+
+    // Use Render's Internal Networking (http://service-name:port) for zero-latency, rate-limit-free calls
+    const defaultInternalUrl = `http://l2-ingestion-s7:3001/v1/harvest`;
     const defaultLiveUrl = `https://l2-ingestion-s7.onrender.com/v1/harvest`;
     const defaultLocalUrl = `http://localhost:3001/v1/harvest`;
     
-    harvestUrl = process.env.HARVEST_URL || (isLocal ? defaultLocalUrl : defaultLiveUrl);
+    // Prioritize: 1. ENV VAR, 2. Internal Render URL, 3. Public Live URL, 4. Local URL
+    harvestUrl = process.env.HARVEST_URL || 
+                 (isLocal ? defaultLocalUrl : (isRender ? defaultInternalUrl : defaultLiveUrl));
 
-    // AUTO-CORRECT: Ensure the path is present
-    if (!harvestUrl.includes('/v1/harvest')) {
+    // AUTO-CORRECT: Ensure the path is present (Sprint 11 standard)
+    if (!harvestUrl.includes('/v1/')) {
         harvestUrl = harvestUrl.replace(/\/$/, '') + '/v1/harvest';
     }
 
     try {
-        console.log(`[Admin] Scan Trigger [Local: ${isLocal}]: Calling ${harvestUrl}`);
+        console.log(`[Admin] Scan Trigger [Local: ${isLocal}, Render: ${isRender}]: Calling ${harvestUrl}`);
+        
         // Using GET to bypass potential POST-specific rate limits/Cloudflare filters
-        const response = await axios.get(harvestUrl, { timeout: 15000 });
+        // Using a short timeout for internal, longer for public
+        const response = await axios.get(harvestUrl, { 
+            timeout: isRender ? 5000 : 15000 
+        });
         
         return res.json({ 
             status: 'success', 
-            message: `Scan triggered successfully via GET (${isLocal ? 'Local' : 'Live'})`,
+            message: `Scan triggered successfully via GET (${isRender ? 'Internal' : (isLocal ? 'Local' : 'Live')})`,
             data: response.data 
         });
     } catch (error: any) {
+        // FALLBACK: If the simplified /v1/harvest fails with 404, try the legacy ingestion path
+        if (error.response?.status === 404 && harvestUrl.endsWith('/v1/harvest')) {
+            const legacyUrl = harvestUrl.replace('/v1/harvest', '/v1/ingestion/tiktok/harvest');
+            console.log(`[Admin] Primary URL 404. Trying legacy fallback: ${legacyUrl}`);
+            try {
+                const legacyResponse = await axios.post(legacyUrl, {}, { timeout: 15000 });
+                return res.json({
+                    status: 'success',
+                    message: 'Scan triggered via legacy fallback',
+                    data: legacyResponse.data
+                });
+            } catch (fallbackError: any) {
+                console.error(`[Admin] Legacy fallback also failed: ${fallbackError.message}`);
+            }
+        }
+
         const errorMsg = error.message || 'Unknown Error';
         console.error(`[Admin] Scan trigger FAILED: ${errorMsg} (${error.code})`);
         
@@ -97,7 +124,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
             detail: errorMsg,
             code: error.code,
             attempted_url: harvestUrl,
-            hint: `If you see 429, wait 1 minute. If you see ENOTFOUND, ensure HARVEST_URL is set to the correct public URL.`
+            hint: `If you see 429, wait 1 minute. If you see 404, the Ingestion service may have changed endpoints. Current: ${harvestUrl}`
         });
     }
 });

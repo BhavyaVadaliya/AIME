@@ -2,10 +2,13 @@ import axios from 'axios';
 import { runTikTokHarvest } from './harvest';
 import { processL2Request } from '../../logic';
 
+const isRender = !!process.env.RENDER;
 const CORE_API_URL = process.env.CORE_API_URL || 
-                    (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
-                     ? 'https://aime-0vwz.onrender.com/api' 
-                     : 'http://localhost:4000/api');
+                    (isRender 
+                     ? 'http://aime-0vwz:4000/api'
+                     : (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
+                        ? 'https://aime-0vwz.onrender.com/api' 
+                        : 'http://localhost:4000/api'));
 
 export async function routeTikTokHarvest() {
     let batchSize = 0;

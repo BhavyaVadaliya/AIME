@@ -69,6 +69,14 @@ app.get('/v1/harvest', (req: Request, res: Response) => {
     res.status(200).json({ status: 'accepted', message: 'Scan triggered via GET' });
 });
 
+// LEGACY ALIAS: Supporting older deployment versions
+app.post('/v1/ingestion/tiktok/harvest', (req: Request, res: Response) => {
+    routeTikTokHarvest().catch(error => {
+        console.error('Background TikTok harvest failed:', error);
+    });
+    res.status(202).json({ status: 'accepted', message: 'Scan started via legacy endpoint' });
+});
+
 app.post('/v1/l2/ingest', (req: Request, res: Response): void => {
     const start = Date.now();
     let correlation_id = 'unknown';
