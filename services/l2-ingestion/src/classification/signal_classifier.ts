@@ -78,7 +78,12 @@ export function classifySignal(text: string): SignalClassification {
   if (primaryCategory === 'UNCLASSIFIED' && signalType === 'Question') {
     try {
       // Config-driven approach for multi-tenant readiness
-      const configPath = path.resolve(__dirname, '..', '..', '..', '..', 'config', 'classification', 'question_category_mapping.json');
+      let currentPath = __dirname;
+      while (!fs.existsSync(path.join(currentPath, 'config')) && currentPath !== path.parse(currentPath).root) {
+        currentPath = path.dirname(currentPath);
+      }
+      const configPath = path.join(currentPath, 'config', 'classification', 'question_category_mapping.json');
+      
       if (fs.existsSync(configPath)) {
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         const professionalKeywords = config.professional_pathway_keywords || [];
@@ -113,7 +118,11 @@ export function classifySignal(text: string): SignalClassification {
   if (primaryCategory === 'UNCLASSIFIED') {
     try {
       const hashtags = (t.match(/#(\w+)/g) || []).map(tag => tag.substring(1));
-      const mappingPath = path.resolve(__dirname, '..', '..', '..', '..', 'config', 'classification', 'hashtag_category_mapping.json');
+      let currentPath = __dirname;
+      while (!fs.existsSync(path.join(currentPath, 'config')) && currentPath !== path.parse(currentPath).root) {
+        currentPath = path.dirname(currentPath);
+      }
+      const mappingPath = path.join(currentPath, 'config', 'classification', 'hashtag_category_mapping.json');
       
       if (fs.existsSync(mappingPath)) {
         const mapping = JSON.parse(fs.readFileSync(mappingPath, 'utf8'));

@@ -30,8 +30,11 @@ export class GovernanceRouter {
     private config: QueueRoutingConfig;
 
     constructor() {
-        const rootDir = path.join(__dirname, '..', '..', '..', '..');
-        const configPath = path.join(rootDir, 'config', 'governance', 'queue_routing.json');
+        let currentPath = __dirname;
+        while (!fs.existsSync(path.join(currentPath, 'config')) && currentPath !== path.parse(currentPath).root) {
+            currentPath = path.dirname(currentPath);
+        }
+        const configPath = path.join(currentPath, 'config', 'governance', 'queue_routing.json');
         
         try {
             if (fs.existsSync(configPath)) {

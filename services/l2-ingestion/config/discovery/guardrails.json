@@ -1,0 +1,9 @@
+{
+  "max_requests_per_cycle": 10,
+  "max_pages_per_query": 3,
+  "max_signals_pre_cap": 75,
+  "max_signals_post_cap": 25,
+  "min_rate_limit_remaining": 5,
+  "backoff_ms": 1000,
+  "max_cycle_duration_ms": 30000
+}

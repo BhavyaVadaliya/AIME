@@ -1,0 +1,5 @@
+{
+  "max_related_per_seed": 5,
+  "max_comments_per_post": 10,
+  "max_parent_posts_per_cycle": 5
+}

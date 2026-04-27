@@ -24,8 +24,11 @@ export class SignalScorer {
     private config: ScoringConfig;
 
     constructor() {
-        const rootDir = path.join(__dirname, '..', '..', '..', '..');
-        const configPath = path.join(rootDir, 'config', 'scoring', 'signal_scoring.json');
+        let currentPath = __dirname;
+        while (!fs.existsSync(path.join(currentPath, 'config')) && currentPath !== path.parse(currentPath).root) {
+            currentPath = path.dirname(currentPath);
+        }
+        const configPath = path.join(currentPath, 'config', 'scoring', 'signal_scoring.json');
         
         try {
             if (fs.existsSync(configPath)) {

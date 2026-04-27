@@ -1,0 +1,10 @@
+{
+  "low_risk": {
+    "primary_categories": ["Education", "Lifestyle", "Engagement"],
+    "signal_types": ["Content", "Question"]
+  },
+  "higher_risk": {
+    "primary_categories": ["Monetization", "Promotion", "Professional Pathway", "UNCLASSIFIED"],
+    "signal_types": ["Problem", "Offer", "CTA"]
+  }
+}

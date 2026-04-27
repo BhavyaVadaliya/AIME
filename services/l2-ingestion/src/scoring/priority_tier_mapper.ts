@@ -32,8 +32,11 @@ export class PriorityTierMapper {
     private config: PriorityConfig;
 
     constructor() {
-        const rootDir = path.join(__dirname, '..', '..', '..', '..');
-        const configPath = path.join(rootDir, 'config', 'scoring', 'priority_tier_mapping.json');
+        let currentPath = __dirname;
+        while (!fs.existsSync(path.join(currentPath, 'config')) && currentPath !== path.parse(currentPath).root) {
+            currentPath = path.dirname(currentPath);
+        }
+        const configPath = path.join(currentPath, 'config', 'scoring', 'priority_tier_mapping.json');
         
         try {
             if (fs.existsSync(configPath)) {
