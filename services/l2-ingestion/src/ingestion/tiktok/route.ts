@@ -10,6 +10,11 @@ const CORE_API_URL = process.env.CORE_API_URL ||
                         ? 'https://aime-0vwz.onrender.com/api' 
                         : 'http://localhost:4000/api'));
 
+const RTCE_URL = process.env.RTCE_URL || 
+                (isRender 
+                 ? 'http://rtce-text-s7:3002/v1/rtce/decide' 
+                 : 'http://localhost:3002/v1/rtce/decide');
+
 export async function routeTikTokHarvest() {
     let batchSize = 0;
     let status = 'ok';
@@ -56,6 +61,20 @@ export async function routeTikTokHarvest() {
                     });
                 } catch (pushErr: any) {
                     console.error(`Failed to push signal ${item.signal_id} to Core API: ${pushErr.message}`);
+                }
+
+                // Phase 2: RTCE Decisioning (S11-T05 Integration)
+                try {
+                    const rtceRes = await axios.post(RTCE_URL, {
+                        correlation_id: item.correlation_id,
+                        signal_id: item.signal_id,
+                        raw_text: item.raw_text,
+                        l2_bundle: bundle,
+                        policy_mode: "governance-lite"
+                    });
+                    console.log(`[RTCE] Decision for ${item.signal_id}: ${rtceRes.data.route}`);
+                } catch (rtceErr: any) {
+                    console.error(`RTCE decisioning failed for ${item.signal_id}: ${rtceErr.message}`);
                 }
 
             } catch (err: any) {

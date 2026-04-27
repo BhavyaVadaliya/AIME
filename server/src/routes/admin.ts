@@ -62,8 +62,6 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  * Reuses the existing ingestion service endpoint.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
-    let harvestUrl = '';
-    
     // ROBUST DETECTION: Determine if we are running locally or on Render
     const isLocal = req.hostname === 'localhost' || 
                     req.hostname === '127.0.0.1' || 
@@ -71,62 +69,84 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     
     const isRender = !!process.env.RENDER;
 
-    // Use Render's Internal Networking (http://service-name:port) for zero-latency, rate-limit-free calls
-    const defaultInternalUrl = `http://l2-ingestion-s7:3001/v1/harvest`;
-    const defaultLiveUrl = `https://l2-ingestion-s7.onrender.com/v1/harvest`;
-    const defaultLocalUrl = `http://localhost:3001/v1/harvest`;
+    // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
+    const hostnames = isRender ? ['l2-ingestion-s7', 'l2-ingestion'] : ['localhost'];
+    const ports = ['3001'];
+    const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
     
-    // Prioritize: 1. ENV VAR, 2. Internal Render URL, 3. Public Live URL, 4. Local URL
-    harvestUrl = process.env.HARVEST_URL || 
-                 (isLocal ? defaultLocalUrl : (isRender ? defaultInternalUrl : defaultLiveUrl));
+    // Also include the public URL as a last resort
+    const publicBase = `https://l2-ingestion-s7.onrender.com`;
 
-    // AUTO-CORRECT: Ensure the path is present (Sprint 11 standard)
-    if (!harvestUrl.includes('/v1/')) {
-        harvestUrl = harvestUrl.replace(/\/$/, '') + '/v1/harvest';
-    }
-
-    try {
-        console.log(`[Admin] Scan Trigger [Local: ${isLocal}, Render: ${isRender}]: Calling ${harvestUrl}`);
-        
-        // Using GET to bypass potential POST-specific rate limits/Cloudflare filters
-        // Using a short timeout for internal, longer for public
-        const response = await axios.get(harvestUrl, { 
-            timeout: isRender ? 5000 : 15000 
-        });
-        
-        return res.json({ 
-            status: 'success', 
-            message: `Scan triggered successfully via GET (${isRender ? 'Internal' : (isLocal ? 'Local' : 'Live')})`,
-            data: response.data 
-        });
-    } catch (error: any) {
-        // FALLBACK: If the simplified /v1/harvest fails with 404, try the legacy ingestion path
-        if (error.response?.status === 404 && harvestUrl.endsWith('/v1/harvest')) {
-            const legacyUrl = harvestUrl.replace('/v1/harvest', '/v1/ingestion/tiktok/harvest');
-            console.log(`[Admin] Primary URL 404. Trying legacy fallback: ${legacyUrl}`);
-            try {
-                const legacyResponse = await axios.post(legacyUrl, {}, { timeout: 15000 });
-                return res.json({
-                    status: 'success',
-                    message: 'Scan triggered via legacy fallback',
-                    data: legacyResponse.data
-                });
-            } catch (fallbackError: any) {
-                console.error(`[Admin] Legacy fallback also failed: ${fallbackError.message}`);
+    const urlsToTry: string[] = [];
+    
+    // 1. Internal hostnames first (preferred)
+    for (const h of hostnames) {
+        for (const p of ports) {
+            for (const path of paths) {
+                urlsToTry.push(`http://${h}:${p}${path}`);
             }
         }
-
-        const errorMsg = error.message || 'Unknown Error';
-        console.error(`[Admin] Scan trigger FAILED: ${errorMsg} (${error.code})`);
-        
-        return res.status(500).json({ 
-            error: "Failed to trigger scan", 
-            detail: errorMsg,
-            code: error.code,
-            attempted_url: harvestUrl,
-            hint: `If you see 429, wait 1 minute. If you see 404, the Ingestion service may have changed endpoints. Current: ${harvestUrl}`
-        });
     }
+    
+    // 2. Public URL variations
+    for (const path of paths) {
+        urlsToTry.push(`${publicBase}${path}`);
+    }
+
+    // 3. Environment variable override
+    if (process.env.HARVEST_URL) {
+        urlsToTry.unshift(process.env.HARVEST_URL);
+    }
+
+    let lastError: any = null;
+    let successfulUrl = '';
+
+    console.log(`[Admin] Starting Scan Discovery [Render: ${isRender}]. Candidates: ${urlsToTry.length}`);
+
+    for (const url of urlsToTry) {
+        try {
+            console.log(`[Admin] Attempting scan trigger: ${url}`);
+            const response = await axios.get(url, { timeout: 8000 });
+            
+            successfulUrl = url;
+            return res.json({ 
+                status: 'success', 
+                message: `Scan triggered successfully via GET`,
+                attempted_url: url,
+                data: response.data 
+            });
+        } catch (error: any) {
+            lastError = error;
+            console.warn(`[Admin] Failed ${url}: ${error.message} (${error.response?.status || error.code})`);
+            // If it's a 405 (Method Not Allowed), it might expect a POST
+            if (error.response?.status === 405) {
+                try {
+                    console.log(`[Admin] 405 received. Retrying with POST: ${url}`);
+                    const postResponse = await axios.post(url, {}, { timeout: 8000 });
+                    successfulUrl = url;
+                    return res.json({ 
+                        status: 'success', 
+                        message: `Scan triggered successfully via POST`,
+                        attempted_url: url,
+                        data: postResponse.data 
+                    });
+                } catch (postError: any) {
+                    console.warn(`[Admin] POST fallback also failed for ${url}`);
+                }
+            }
+        }
+    }
+
+    // If we get here, all attempts failed
+    const errorMsg = lastError?.message || 'All endpoints returned 404 or connection failed';
+    console.error(`[Admin] ALL scan trigger attempts FAILED.`);
+    
+    return res.status(500).json({ 
+        error: "Failed to trigger scan after discovery", 
+        detail: errorMsg,
+        last_attempted_url: urlsToTry[urlsToTry.length - 1],
+        hint: `None of the following URLs worked: ${urlsToTry.join(', ')}. Ensure the L2 Ingestion service is running and has the harvest endpoint enabled.`
+    });
 });
 
 /**
