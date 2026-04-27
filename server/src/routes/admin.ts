@@ -70,12 +70,12 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     const isRender = !!process.env.RENDER;
 
     // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
-    const hostnames = isRender ? ['l2-ingestion-s7', 'l2-ingestion'] : ['localhost'];
+    const hostnames = isRender ? ['l2-ingestion', 'l2-ingestion-s7', 'localhost'] : ['localhost'];
     const ports = ['3001'];
     const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
     
     // Also include the public URL as a last resort
-    const publicBase = `https://l2-ingestion-s7.onrender.com`;
+    const publicBase = `https://l2-ingestion.onrender.com`;
 
     const urlsToTry: string[] = [];
     
@@ -205,15 +205,16 @@ router.post("/signals", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Missing signal_id or raw_text" });
     }
 
-    /* 
-    const doc = await Signal.findOneAndUpdate(
-      { signal_id: signalData.signal_id },
-      { ...signalData, ingested_at: new Date() },
-      { upsert: true, new: true }
-    );
-    */
+    // Persist to log file so Dashboard Lite can see it (S11 Distributed Fix)
+    const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
+    const entry = {
+        event: "signal_lifecycle_report",
+        timestamp: new Date().toISOString(),
+        ...signalData
+    };
+    fs.appendFileSync(logPath, JSON.stringify(entry) + "\n");
 
-    return res.status(201).json({ success: true, message: "Signal logged (DB skip)" });
+    return res.status(201).json({ success: true, message: "Signal logged to file" });
   } catch (error) {
     console.error("Signal ingest error:", error);
     return res.status(500).json({ error: "Failed to store signal" });

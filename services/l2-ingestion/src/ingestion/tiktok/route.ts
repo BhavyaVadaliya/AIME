@@ -12,7 +12,7 @@ const CORE_API_URL = process.env.CORE_API_URL ||
 
 const RTCE_URL = process.env.RTCE_URL || 
                 (isRender 
-                 ? 'http://rtce-text-s7:3002/v1/rtce/decide' 
+                 ? 'http://rtce-text:3002/v1/rtce/decide' 
                  : 'http://localhost:3002/v1/rtce/decide');
 
 export async function routeTikTokHarvest() {
