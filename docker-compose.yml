@@ -21,6 +21,7 @@ services:
     environment:
       - PORT=4000
       - MONGODB_URI=mongodb://aime-mongodb:27017/aime
+      - HARVEST_URL=http://l2-ingestion:3001/v1/harvest
       - NODE_ENV=production
     depends_on:
       - aime-mongodb

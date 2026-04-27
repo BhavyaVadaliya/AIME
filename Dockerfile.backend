@@ -12,10 +12,10 @@ RUN cd web && npm install
 COPY . .
 
 # Build frontend first
-RUN cd web && npm run build
+RUN cd web && rm -rf dist && npm run build
 
 # Build backend
-RUN cd server && npm run build
+RUN cd server && rm -rf dist && npm run build
 
 EXPOSE 4000
 WORKDIR /app/server
