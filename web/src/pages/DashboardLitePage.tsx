@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Filter, BarChart3, Clock, AlertTriangle, CheckCircle2, Layers, Box, Info, Play, Loader2 } from 'lucide-react';
+import { Shield, Filter, BarChart3, Clock, AlertTriangle, CheckCircle2, Layers, Info, Play, Loader2 } from 'lucide-react';
 import { SignalDetailPanel } from '../components/SignalDetailPanel';
+import { ExternalSourceIcon } from '../components/ExternalSourceIcon';
+import { SourceLinkButton, checkIdentityMatch } from '../components/SourceLinkButton';
 
 interface Signal {
     signal_id: string;
@@ -355,17 +357,22 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
-                                    <span className="bg-slate-900 border border-slate-700 text-cyan-400 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold">
-                                        {s?.source?.platform.toUpperCase()}
-                                    </span>
-                                    <span className="text-slate-400 text-[10px] font-medium italic">
+                                    <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/50 px-2 py-1 rounded-lg">
+                                        <ExternalSourceIcon platform={s?.source?.platform || ''} className="w-3 h-3 text-cyan-400" />
+                                        <span className="text-cyan-400 text-[9px] font-bold uppercase tracking-tight">
+                                            {s?.source?.platform}
+                                        </span>
+                                    </div>
+                                    <span className={`text-[10px] font-medium italic ${!checkIdentityMatch(s?.source?.source_url, s?.source?.username) ? 'text-amber-400' : 'text-slate-400'}`}>
                                         @{s?.source?.username}
                                     </span>
-                                    {s?.source?.source_url && (
-                                        <a href={s.source.source_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-cyan-500 hover:text-cyan-400 underline underline-offset-2 ml-1">
-                                            View Source
-                                        </a>
+                                    {!checkIdentityMatch(s?.source?.source_url, s?.source?.username) && (
+                                        <div className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-[8px] font-bold text-amber-500 uppercase animate-pulse">
+                                            Mismatch
+                                        </div>
                                     )}
+                                    <div className="w-1 h-1 rounded-full bg-slate-700 mx-1" />
+                                    <SourceLinkButton url={s?.source?.source_url} />
                                 </div>
                             )}
                         </div>
