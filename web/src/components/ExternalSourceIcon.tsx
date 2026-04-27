@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Globe } from 'lucide-react';
+import { ExternalLink, MessageSquare, Globe } from 'lucide-react';
 
 interface Props {
     platform: string;
@@ -30,3 +30,4 @@ export const ExternalSourceIcon: React.FC<Props> = ({ platform, className = "w-4
     
     return <Globe className={className} />;
 };
+
