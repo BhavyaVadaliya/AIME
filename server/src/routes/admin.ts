@@ -70,12 +70,25 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     const isRender = !!process.env.RENDER;
 
     // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
-    const hostnames = ['l2-ingestion', 'l2-ingestion-srv', 'l2-ingestion-s7', 'localhost', '127.0.0.1'];
+    const hostnames = [
+        'l2-ingestion', 
+        'l2-ingestion-service',
+        'l2-ingestion-srv', 
+        'l2-ingestion-s7', 
+        'aime-l2-ingestion',
+        'aime-l2-ingestion-srv',
+        'localhost', 
+        '127.0.0.1'
+    ];
     const ports = ['3001', '10000', '80'];
     const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
     
     // Also include the public URL as a last resort
-    const publicBase = `https://l2-ingestion.onrender.com`;
+    const publicBases = [
+        `https://l2-ingestion.onrender.com`,
+        `https://aime-l2-ingestion.onrender.com`,
+        `https://l2-ingestion-service.onrender.com`
+    ];
 
     const urlsToTry: string[] = [];
     
@@ -89,8 +102,10 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     }
     
     // 2. Public URL variations
-    for (const path of paths) {
-        urlsToTry.push(`${publicBase}${path}`);
+    for (const base of publicBases) {
+        for (const path of paths) {
+            urlsToTry.push(`${base}${path}`);
+        }
     }
 
     // 3. Environment variable override
