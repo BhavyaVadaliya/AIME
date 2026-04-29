@@ -70,8 +70,8 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     const isRender = !!process.env.RENDER;
 
     // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
-    const hostnames = isRender ? ['l2-ingestion', 'l2-ingestion-s7', 'localhost'] : ['localhost'];
-    const ports = ['3001'];
+    const hostnames = ['l2-ingestion', 'l2-ingestion-srv', 'l2-ingestion-s7', 'localhost', '127.0.0.1'];
+    const ports = ['3001', '10000', '80'];
     const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
     
     // Also include the public URL as a last resort
