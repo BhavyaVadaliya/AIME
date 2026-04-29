@@ -39,6 +39,8 @@ async function runRealDataScan() {
             createTime: Math.floor(Date.now() / 1000) - (i * 3600) // Staggered over last 12h
         });
 
+        if (!request) continue;
+
         const bundle = processL2Request(request);
 
         // Standard Lifecycle Reporting (which Dashboard Lite consumes)
