@@ -169,6 +169,8 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     });
 
     const normalizedItems: L2IngestRequest[] = [];
+    let rejected_missing_source_count = 0;
+
     
     for (const item of uniqueRawItems) {
         // Enforce the hard cap
@@ -245,6 +247,12 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
 
         try {
             const normalized = normalizeTikTokItem(item as RawTikTokItem);
+            
+            if (!normalized) {
+                rejected_missing_source_count++;
+                continue; // Quarantine/skip safely
+            }
+
             normalizedItems.push(normalized);
 
             console.log(JSON.stringify({
@@ -287,6 +295,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         batch_size: normalizedItems.length,
         max_signals_per_batch: maxSignals,
         unique_signals_found: uniqueRawItems.length,
+        rejected_missing_source_count: rejected_missing_source_count,
         status: 'ok'
     }));
 

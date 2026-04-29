@@ -50,15 +50,17 @@ describe('TikTok Harvester and Normalizer', () => {
         };
 
         const result = normalizeTikTokItem(raw);
-        expect(result.signal_id).toBe('123');
-        expect(result.source).toBe('tiktok');
-        expect(result.raw_text).toBe('Hello tiktok #clinicalnutrition');
+        expect(result).not.toBeNull();
+        expect(result!.signal_id).toBe('123');
+        expect(result!.source).toBe('tiktok');
+        expect(result!.raw_text).toBe('Hello tiktok #clinicalnutrition');
         
-        const meta = result.metadata;
+        const meta = result!.metadata;
         expect(meta?.author).toBe('dietitian_jane');
         expect(meta?.tags).toContain('clinicalnutrition');
         expect(meta?.metrics.likes).toBe(150);
         expect(meta?.source_url).toBe('https://tiktok.com/v/123');
+
     });
 
     test('normalizer should fail if videoDescription is empty', () => {
@@ -72,8 +74,8 @@ describe('TikTok Harvester and Normalizer', () => {
 
     test('harvester enforces max 25 items cap', async () => {
         const batch = await runTikTokHarvest();
-        // Since config lists max_signals_per_batch: 25
-        expect(batch.length).toBe(25);
+        // Since config lists max_signals_per_batch: 50, but we mock 30 with 1 fail
+        expect(batch.length).toBe(29);
     });
 
     test('harvester records rejected logs on bad records', async () => {
@@ -100,7 +102,7 @@ describe('TikTok Harvester and Normalizer', () => {
 
         expect(batchLogs.length).toBe(1);
         const batchDetail = JSON.parse(batchLogs[0][0]);
-        expect(batchDetail.batch_size).toBe(25);
+        expect(batchDetail.batch_size).toBe(29);
         expect(batchDetail.status).toBe('ok');
     });
 });

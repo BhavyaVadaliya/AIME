@@ -82,6 +82,7 @@ export async function runExpandedTikTokHarvest(): Promise<L2IngestRequest[]> {
     });
 
     const normalizedItems: L2IngestRequest[] = [];
+    let rejected_missing_source_count = 0;
     
     for (const item of uniqueExpanded) {
         if (normalizedItems.length >= maxSignals) {
@@ -90,7 +91,12 @@ export async function runExpandedTikTokHarvest(): Promise<L2IngestRequest[]> {
 
         try {
             // Use standard normalization to ensure adherence to the L2IngestRequest contract
-            const normalized: L2IngestRequest = normalizeTikTokItem(item as RawTikTokItem);
+            const normalized: L2IngestRequest | null = normalizeTikTokItem(item as RawTikTokItem);
+            
+            if (!normalized) {
+                rejected_missing_source_count++;
+                continue;
+            }
             
             // Confirming no extra fields like 'discovery_origin' are present or leaked
             normalizedItems.push(normalized);
@@ -107,6 +113,14 @@ export async function runExpandedTikTokHarvest(): Promise<L2IngestRequest[]> {
             // Silently skip expansion items that fail normalization logic
         }
     }
+
+    console.log(JSON.stringify({
+        event: 'tiktok_harvest_expanded_batch',
+        timestamp: new Date().toISOString(),
+        batch_size: normalizedItems.length,
+        rejected_missing_source_count: rejected_missing_source_count,
+        status: 'ok'
+    }));
 
     return normalizedItems;
 }

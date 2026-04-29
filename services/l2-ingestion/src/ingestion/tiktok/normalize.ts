@@ -13,7 +13,7 @@ export interface RawTikTokItem {
     commentCount?: number;
 }
 
-export function normalizeTikTokItem(rawItem: any): L2IngestRequest {
+export function normalizeTikTokItem(rawItem: any): L2IngestRequest | null {
     if (!rawItem.id && !rawItem.video_id) {
         throw new Error("Missing required field: id");
     }
@@ -44,6 +44,21 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest {
         // Construct from handle if available, else generic
         const handle = (rawItem.author && typeof rawItem.author === 'object' ? rawItem.author.uniqueId : '') || authorName || 'video';
         sourceUrl = `https://www.tiktok.com/@${handle.replace('@', '')}/video/${id}`;
+    }
+
+    // 1. Source Provenance Guard
+    if (authorName === 'unknown' || !authorName || !sourceUrl || !sourceUrl.includes('tiktok.com') || sourceUrl.includes('@unknown/') || sourceUrl.includes('@video/')) {
+        console.log(JSON.stringify({
+            event: "signal_rejected_missing_source",
+            timestamp: new Date().toISOString(),
+            source: "tiktok",
+            signal_id: rawItem.id || rawItem.video_id,
+            author_username: authorName,
+            source_url: sourceUrl,
+            reason: "missing_source_provenance",
+            status: "rejected"
+        }));
+        return null;
     }
 
     const canonicalSignal = {
