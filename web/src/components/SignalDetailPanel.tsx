@@ -3,6 +3,7 @@ import { X, Shield, Activity, Share2, ChevronRight, FileJson } from 'lucide-reac
 import { SignalScoreBreakdown } from './SignalScoreBreakdown';
 import { SignalSourceBlock } from './SignalSourceBlock';
 import { SignalClassificationBlock } from './SignalClassificationBlock';
+import { SuggestedReplyPanel } from './SuggestedReplyPanel';
 
 interface Signal {
     signal_id: string;
@@ -127,6 +128,15 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                             )}
                         </section>
                     </div>
+
+                    {/* Operator Assistant Section (S11-T04) */}
+                    <section>
+                        <SuggestedReplyPanel 
+                            category={s?.classification.primary_category || 'UNCLASSIFIED'}
+                            type={s?.classification.signal_type || 'unclassified'}
+                            rawText={s?.raw_text || ''}
+                        />
+                    </section>
 
                     {/* Governance Context */}
                     <section className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700/50">
