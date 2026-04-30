@@ -28,7 +28,7 @@ export async function routeTikTokHarvest() {
                 // Submit through ingestion logic handler
                 const bundle = processL2Request(item);
                 
-                // Detailed logging
+                // Detailed logging (already includes LifecycleReporter output to l2_logs.txt)
                 console.log(JSON.stringify({
                     event: 'Signal detected',
                     timestamp: new Date().toISOString(),
@@ -44,26 +44,8 @@ export async function routeTikTokHarvest() {
                     governance_status: 'passed'
                 }));
 
-                // Phase 1: Push to Core API for Storage/Dashboard
-                try {
-                    await axios.post(`${CORE_API_URL}/admin/signals`, {
-                        signal_id: item.signal_id,
-                        source: 'tiktok',
-                        raw_text: item.raw_text,
-                        metadata: item.metadata,
-                        topics: bundle.topics,
-                        subtopics: bundle.subtopics,
-                        context_summary: bundle.context_summary,
-                        flags: bundle.flags,
-                        actionable: bundle.topics.length > 0 && !bundle.topics.includes('general'),
-                        status: 'accepted',
-                        governance_status: 'passed'
-                    });
-                } catch (pushErr: any) {
-                    console.error(`Failed to push signal ${item.signal_id} to Core API: ${pushErr.message}`);
-                }
-
                 // Phase 2: RTCE Decisioning (S11-T05 Integration)
+
                 try {
                     const rtceRes = await axios.post(RTCE_URL, {
                         correlation_id: item.correlation_id,

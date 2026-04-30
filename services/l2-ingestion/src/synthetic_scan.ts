@@ -61,11 +61,16 @@ async function runSyntheticScan() {
             correlation_id: correlationId,
             signal_id: signalId,
             source: "tiktok",
-            raw_text: rawText
+            raw_text: rawText,
+            metadata: {
+                author: "synthetic_user_" + i,
+                source_url: `https://www.tiktok.com/@synthetic_user_${i}/video/${Date.now()}_${i}`
+            }
         };
 
         // 2. Process
         const bundle = processL2Request(sample);
+
 
         // 3. Log to l2_logs.txt (Lifecycle Report format)
         const logEntry = {

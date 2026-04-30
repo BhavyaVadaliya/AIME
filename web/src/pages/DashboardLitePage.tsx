@@ -53,8 +53,9 @@ export const DashboardLitePage: React.FC = () => {
             const mapped = data.map((entry: any) => ({
                 signal_id: entry.signal_id,
                 correlation_id: entry.correlation_id,
-                structured_post: entry.structured_post?.data || entry.structured_post
+                structured_post: entry.lifecycle?.structured_post?.data || entry.structured_post?.data || entry.structured_post
             }));
+
 
             setSignals(mapped);
             setLoading(false);
