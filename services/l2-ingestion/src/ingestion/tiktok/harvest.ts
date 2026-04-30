@@ -7,7 +7,7 @@ import * as path from 'path';
 import { refineIntent } from './intent_refinement';
 
 const client = new ApifyClient({
-    token: process.env.APIFY_API_TOKEN || 'apify_api_NpGJVmWH1mDutaadCjxYPceEYYtfxD1dtgoj',
+    token: process.env.APIFY_API_TOKEN || 'MISSING_TOKEN',
 });
 
 function getConfigPath(): string {
