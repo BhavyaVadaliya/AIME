@@ -48,7 +48,6 @@ export class LifecycleReporter {
         }
 
         const now = new Date().toISOString();
-
         return {
             signal_id: bundle.signal_id,
             correlation_id: bundle.correlation_id,
@@ -105,11 +104,24 @@ export class LifecycleReporter {
 
             // 3. Distributed PUSH to Core API (Required for live Dashboard Lite)
             const isRender = !!process.env.RENDER;
-            const coreUrl = process.env.CORE_API_URL || 
-                           (isRender ? 'http://aime-0vwz:4000/api' : 'https://aime-0vwz.onrender.com/api');
+            const internalCore = 'http://aime-0vwz:4000/api';
+            const publicCore = 'https://aime-0vwz.onrender.com/api';
+            const coreUrl = process.env.CORE_API_URL || (isRender ? internalCore : publicCore);
             
-            await axios.post(`${coreUrl}/admin/signals`, entry, { timeout: 5000 })
-                .catch(err => console.warn(`[Reporter] Core API push failed: ${err.message}`));
+            console.log(`[Reporter] Pushing signal ${entry.signal_id} to Core API: ${coreUrl}`);
+            
+            try {
+                await axios.post(`${coreUrl}/admin/signals`, entry, { timeout: 5000 });
+                console.log(`[Reporter] Successfully pushed signal ${entry.signal_id}`);
+            } catch (err: any) {
+                console.warn(`[Reporter] Primary push failed for ${entry.signal_id}, trying public fallback...`);
+                // Fallback to public URL if internal fails
+                if (coreUrl !== publicCore) {
+                    await axios.post(`${publicCore}/admin/signals`, entry, { timeout: 5000 })
+                        .then(() => console.log(`[Reporter] Fallback push successful for ${entry.signal_id}`))
+                        .catch(e => console.error(`[Reporter] All push attempts failed for ${entry.signal_id}: ${e.message}`));
+                }
+            }
             
         } catch (e: any) {
             console.error(`Failed to log lifecycle: ${e.message}`);

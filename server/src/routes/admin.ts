@@ -213,9 +213,12 @@ router.post("/signals", async (req: Request, res: Response) => {
   try {
     const signalData = req.body;
     // Basic validation
-    if (!signalData.signal_id || !signalData.raw_text) {
-      return res.status(400).json({ error: "Missing signal_id or raw_text" });
+    if (!signalData.signal_id) {
+      console.warn("[Admin] Received signal with missing ID:", signalData);
+      return res.status(400).json({ error: "Missing signal_id" });
     }
+
+    console.log(`[Admin] RECEIVED SIGNAL: ${signalData.signal_id} (${signalData.correlation_id})`);
 
     // Persist to log file so Dashboard Lite can see it (S11 Distributed Fix)
     const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");

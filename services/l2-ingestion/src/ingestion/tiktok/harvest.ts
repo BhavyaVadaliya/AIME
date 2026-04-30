@@ -171,6 +171,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
 
     // Fetch live signals from TikTok via Apify
     const rawItems: any[] = await fetchTikTokSignals(hashtags, 75, accounts);
+    console.log(`[Harvest] Found ${rawItems.length} raw items from TikTok`);
 
     const seenIds = new Set();
     const uniqueRawItems = rawItems.filter(item => {
