@@ -4,6 +4,7 @@ import { SignalScoreBreakdown } from './SignalScoreBreakdown';
 import { SignalSourceBlock } from './SignalSourceBlock';
 import { SignalClassificationBlock } from './SignalClassificationBlock';
 import { SuggestedReplyPanel } from './SuggestedReplyPanel';
+import { EngagementAnglePanel } from './EngagementAnglePanel';
 
 interface Signal {
     signal_id: string;
@@ -135,6 +136,14 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                             category={s?.classification.primary_category || 'UNCLASSIFIED'}
                             type={s?.classification.signal_type || 'unclassified'}
                             rawText={s?.raw_text || ''}
+                        />
+                    </section>
+
+                    {/* Engagement Strategy Section (S11-T05) */}
+                    <section>
+                        <EngagementAnglePanel 
+                            category={s?.classification.primary_category || 'UNCLASSIFIED'}
+                            type={s?.classification.signal_type || 'unclassified'}
                         />
                     </section>
 

@@ -8,12 +8,12 @@ const CORE_API_URL = process.env.CORE_API_URL ||
                      ? 'http://aime-0vwz:4000/api'
                      : (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
                         ? 'https://aime-0vwz.onrender.com/api' 
-                        : 'http://localhost:4000/api'));
+                        : 'https://aime-0vwz.onrender.com/api'));
 
 const RTCE_URL = process.env.RTCE_URL || 
                 (isRender 
                  ? 'http://rtce-text:3002/v1/rtce/decide' 
-                 : 'http://localhost:3002/v1/rtce/decide');
+                 : 'https://rtce-text.onrender.com/v1/rtce/decide');
 
 export async function routeTikTokHarvest() {
     let batchSize = 0;

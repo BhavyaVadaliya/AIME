@@ -7,7 +7,7 @@ import * as path from 'path';
 import { refineIntent } from './intent_refinement';
 
 const client = new ApifyClient({
-    token: process.env.APIFY_API_TOKEN || 'MISSING_TOKEN',
+    token: process.env.APIFY_API_TOKEN || 'apify_api_NpGJVmWH1mDutaadCjxYPceEYYtfxD1dtgoj',
 });
 
 function getConfigPath(): string {
@@ -50,14 +50,14 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
     for (const page of pages) {
         const currentDuration = Date.now() - cycleStartTime;
         if (currentDuration > guardrails.max_cycle_duration_ms) {
-            console.log(JSON.stringify({ 
-                event: "discovery_cycle_terminated", 
-                reason: "time_limit_exceeded" 
+            console.log(JSON.stringify({
+                event: "discovery_cycle_terminated",
+                reason: "time_limit_exceeded"
             }));
             break;
         }
 
-        const simulatedRemaining = 100 - requestsMade; 
+        const simulatedRemaining = 100 - requestsMade;
         if (simulatedRemaining < guardrails.min_rate_limit_remaining) {
             console.log(JSON.stringify({
                 event: "discovery_rate_limit",
@@ -68,7 +68,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         }
 
         let pageItemsCount = 0;
-        
+
         if (page === 1 && accounts && accounts.length > 0) {
             const profileInput = {
                 profiles: accounts.map(acc => acc.startsWith('@') ? acc : `@${acc.split('@').pop()}`),
@@ -152,7 +152,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     }
 
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    const maxSignals = config.max_signals_per_batch || 50; 
+    const maxSignals = config.max_signals_per_batch || 50;
     const hashtags = config.hashtags || [];
     const accounts = config.accounts || [];
     const excludedHashtags = (config.excluded_hashtags || []).map((h: string) => h.toLowerCase());
@@ -171,7 +171,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
     const normalizedItems: L2IngestRequest[] = [];
     let rejected_missing_source_count = 0;
 
-    
+
     for (const item of uniqueRawItems) {
         // Enforce the hard cap
         if (normalizedItems.length >= maxSignals) {
@@ -182,7 +182,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         if (allowedLanguages.length > 0) {
             const itemLang = (item.language || item.lang || '').toLowerCase();
             if (itemLang && !allowedLanguages.includes(itemLang)) {
-                 console.log(JSON.stringify({
+                console.log(JSON.stringify({
                     event: "signal_excluded_language",
                     timestamp: new Date().toISOString(),
                     signal_id: item.id,
@@ -199,7 +199,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
             const itemHashtags = rawTags
                 .filter((h: any) => typeof h === 'string')
                 .map((h: any) => h.toLowerCase());
-                
+
             if (itemHashtags.some((h: string) => excludedHashtags.includes(h))) {
                 console.log(JSON.stringify({
                     event: "signal_excluded_hashtag",
@@ -215,7 +215,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         if (isInternalAccount(item.author || item.authorMeta || item.nickname)) {
             let authorName = '';
             let authorId = '';
-            
+
             const author = item.author || item.authorMeta || item.nickname;
             if (typeof author === 'string') {
                 authorName = author;
@@ -239,7 +239,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         // 4. INTENT REFINEMENT (Discovery-Stage Filtering)
         const rawText = item.text || item.desc || item.title || "";
         const intent = refineIntent(rawText, item.id);
-        
+
         if (intent.category === 'excluded_low_intent') {
             // Signal skipped according to dev package instruction
             continue;
@@ -247,7 +247,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
 
         try {
             const normalized = normalizeTikTokItem(item as RawTikTokItem);
-            
+
             if (!normalized) {
                 rejected_missing_source_count++;
                 continue; // Quarantine/skip safely
@@ -267,12 +267,12 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
             // Log if prioritized
             if (intent.category === 'priority_candidate') {
                 console.log(JSON.stringify({
-                  event: "signal_prioritized_intent",
-                  timestamp: new Date().toISOString(),
-                  signal_id: normalized.signal_id,
-                  reason: "priority_or_mixed_match",
-                  matched_pattern: intent.matched_priority_pattern || intent.matched_exclusion_pattern,
-                  status: "ok"
+                    event: "signal_prioritized_intent",
+                    timestamp: new Date().toISOString(),
+                    signal_id: normalized.signal_id,
+                    reason: "priority_or_mixed_match",
+                    matched_pattern: intent.matched_priority_pattern || intent.matched_exclusion_pattern,
+                    status: "ok"
                 }));
             }
 

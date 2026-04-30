@@ -76,6 +76,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     
     // Also include the public URL as a last resort
     const publicBase = `https://l2-ingestion.onrender.com`;
+    const liveCoreBase = `https://aime-0vwz.onrender.com`;
 
     const urlsToTry: string[] = [];
     
@@ -91,6 +92,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     // 2. Public URL variations
     for (const path of paths) {
         urlsToTry.push(`${publicBase}${path}`);
+        urlsToTry.push(`${liveCoreBase.replace('aime-0vwz', 'l2-ingestion')}${path}`);
     }
 
     // 3. Environment variable override
