@@ -111,9 +111,10 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
             const response = await axios.get(url, { timeout: 8000 });
             
             successfulUrl = url;
+            console.log(`[Admin] SCAN SUCCESS: Triggered via ${url}`);
             return res.json({ 
                 status: 'success', 
-                message: `Scan triggered successfully via GET`,
+                message: `Scan triggered successfully`,
                 attempted_url: url,
                 data: response.data 
             });

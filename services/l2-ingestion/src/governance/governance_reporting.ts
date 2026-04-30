@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import axios from 'axios';
 import { L2Bundle } from '../types';
 
 export interface LifecycleReport {
@@ -80,8 +81,9 @@ export class LifecycleReporter {
 
     /**
      * Logs the full lifecycle report for audit purposes.
+     * In a distributed environment (like Render), this also pushes to the Core API.
      */
-    logLifecycle(bundle: L2Bundle): void {
+    async logLifecycle(bundle: L2Bundle): Promise<void> {
         try {
             const report = this.generateReport(bundle);
             const entry = {
@@ -93,9 +95,21 @@ export class LifecycleReporter {
             // 1. Console Log
             console.log(JSON.stringify(entry));
 
-            // 2. File Log for Dashboard Lite
-            const logPath = path.resolve(__dirname, "..", "..", "..", "..", "l2_logs.txt");
-            fs.appendFileSync(logPath, JSON.stringify(entry) + "\n");
+            // 2. File Log (Local/Container fallback)
+            try {
+                const logPath = path.resolve(__dirname, "..", "..", "..", "..", "l2_logs.txt");
+                fs.appendFileSync(logPath, JSON.stringify(entry) + "\n");
+            } catch (fsErr) {
+                // Ignore FS errors in read-only environments
+            }
+
+            // 3. Distributed PUSH to Core API (Required for live Dashboard Lite)
+            const isRender = !!process.env.RENDER;
+            const coreUrl = process.env.CORE_API_URL || 
+                           (isRender ? 'http://aime-0vwz:4000/api' : 'https://aime-0vwz.onrender.com/api');
+            
+            await axios.post(`${coreUrl}/admin/signals`, entry, { timeout: 5000 })
+                .catch(err => console.warn(`[Reporter] Core API push failed: ${err.message}`));
             
         } catch (e: any) {
             console.error(`Failed to log lifecycle: ${e.message}`);
