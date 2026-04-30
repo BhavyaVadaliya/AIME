@@ -182,6 +182,7 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
 
     const normalizedItems: L2IngestRequest[] = [];
     let rejected_missing_source_count = 0;
+    let synthetic_source_rejection_count = 0;
 
 
     for (const item of uniqueRawItems) {
@@ -258,12 +259,30 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         }
 
         try {
+            // 5. SYNTHETIC SOURCE PRE-GUARD (T03.x Follow-up)
+            const author = item.author || item.authorMeta || item.nickname;
+            let authorName = '';
+            if (typeof author === 'string') authorName = author;
+            else if (author && typeof author === 'object') authorName = author.uniqueId || author.username || '';
+
+            const sourceUrl = item.webVideoUrl || item.url || '';
+            const isSynthetic = authorName.toLowerCase().includes('synthetic') || 
+                                authorName.toLowerCase().includes('unknown') || 
+                                sourceUrl.toLowerCase().includes('@synthetic') || 
+                                sourceUrl.toLowerCase().includes('@unknown');
+
             const normalized = normalizeTikTokItem(item as RawTikTokItem);
+
+            if (isSynthetic) {
+                synthetic_source_rejection_count++;
+                continue; 
+            }
 
             if (!normalized) {
                 rejected_missing_source_count++;
                 continue; // Quarantine/skip safely
             }
+
 
             normalizedItems.push(normalized);
 
@@ -308,8 +327,10 @@ export async function runTikTokHarvest(): Promise<L2IngestRequest[]> {
         max_signals_per_batch: maxSignals,
         unique_signals_found: uniqueRawItems.length,
         rejected_missing_source_count: rejected_missing_source_count,
+        synthetic_source_rejection_count: synthetic_source_rejection_count,
         status: 'ok'
     }));
+
 
     return normalizedItems;
 }

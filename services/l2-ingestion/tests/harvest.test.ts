@@ -10,17 +10,31 @@ jest.mock('apify-client', () => {
                 call: jest.fn().mockResolvedValue({ defaultDatasetId: 'test-dataset' }),
                 dataset: jest.fn().mockReturnThis(),
                 listItems: jest.fn().mockResolvedValue({
-                    items: Array(30).fill(null).map((_, i) => ({
-                        id: `tk-${i}`,
-                        videoDescription: i === 1 ? '' : `Test post ${i} about #nutrition`,
-                        authorMeta: { name: `user-${i}` },
-                        createTime: 1710243600,
-                        hashtags: [{ name: 'nutrition' }],
-                        webVideoUrl: `https://tiktok.com/@user-${i}/video/${i}`,
-                        diggCount: 100,
-                        commentCount: 10
-                    }))
+                    items: [
+                        ...Array(30).fill(null).map((_, i) => ({
+                            id: `tk-real-${i}`,
+                            text: i === 1 ? '' : `Real post ${i} #nutrition`,
+                            author: { uniqueId: `realuser-${i}` },
+                            createTime: 1710243600,
+                            hashtags: [{ name: 'nutrition' }],
+                            webVideoUrl: `https://tiktok.com/@realuser-${i}/video/${i}`,
+                            diggCount: 100,
+                            commentCount: 10
+                        })),
+                        ...Array(5).fill(null).map((_, i) => ({
+                            id: `tk-synth-${i}`,
+                            text: `Synthetic post ${i}`,
+                            author: { uniqueId: `synthetic_user-${i}` },
+                            createTime: 1710243600,
+                            hashtags: [{ name: 'nutrition' }],
+                            webVideoUrl: `https://tiktok.com/@synthetic_user-${i}/video/${i}`,
+                            diggCount: 100,
+                            commentCount: 10
+                        }))
+                    ]
                 })
+
+
             };
         })
     };
@@ -78,13 +92,19 @@ describe('TikTok Harvester and Normalizer', () => {
         expect(batch.length).toBe(29);
     });
 
+
     test('harvester records rejected logs on bad records', async () => {
         await runTikTokHarvest();
 
         const rejectedLogs = mockConsoleLog.mock.calls.filter(args => {
-            const parsed = JSON.parse(args[0]);
-            return parsed.event === 'tiktok_harvest_item' && parsed.ingestion_status === 'rejected';
+            try {
+                const parsed = JSON.parse(args[0]);
+                return parsed.event === 'tiktok_harvest_item' && parsed.ingestion_status === 'rejected';
+            } catch (e) {
+                return false;
+            }
         });
+
 
         expect(rejectedLogs.length).toBeGreaterThan(0);
         const badItemDetail = JSON.parse(rejectedLogs[0][0]);
@@ -96,13 +116,61 @@ describe('TikTok Harvester and Normalizer', () => {
         await runTikTokHarvest();
 
         const batchLogs = mockConsoleLog.mock.calls.filter(args => {
-            const parsed = JSON.parse(args[0]);
-            return parsed.event === 'tiktok_harvest_batch';
+            try {
+                const parsed = JSON.parse(args[0]);
+                return parsed.event === 'tiktok_harvest_batch';
+            } catch (e) {
+                return false;
+            }
         });
+
 
         expect(batchLogs.length).toBe(1);
         const batchDetail = JSON.parse(batchLogs[0][0]);
         expect(batchDetail.batch_size).toBe(29);
         expect(batchDetail.status).toBe('ok');
     });
+
+    test('normalizer should reject synthetic or unknown authors', () => {
+        const syntheticRaw = {
+            id: 'synth-1',
+            text: 'Hello',
+            author: { uniqueId: 'synthetic_user_1' },
+            webVideoUrl: 'https://tiktok.com/@synthetic_user_1/video/1'
+        };
+
+        const result = normalizeTikTokItem(syntheticRaw);
+        expect(result).toBeNull();
+
+        const unknownRaw = {
+            id: 'unk-1',
+            text: 'Hello',
+            author: { uniqueId: 'unknown' },
+            webVideoUrl: 'https://tiktok.com/@unknown/video/1'
+        };
+
+        const result2 = normalizeTikTokItem(unknownRaw);
+        expect(result2).toBeNull();
+    });
+
+    test('harvester records synthetic rejection metrics', async () => {
+        await runTikTokHarvest();
+
+        const batchLogs = mockConsoleLog.mock.calls.filter(args => {
+            try {
+                const parsed = JSON.parse(args[0]);
+                return parsed.event === 'tiktok_harvest_batch';
+            } catch (e) {
+                return false;
+            }
+        });
+
+        expect(batchLogs.length).toBe(1);
+        const batchDetail = JSON.parse(batchLogs[0][0]);
+        expect(batchDetail.synthetic_source_rejection_count).toBe(5);
+        expect(batchDetail.batch_size).toBe(29);
+    });
+
 });
+
+

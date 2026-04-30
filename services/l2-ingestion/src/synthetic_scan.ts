@@ -57,22 +57,31 @@ async function runSyntheticScan() {
             continue;
         }
 
-        const sample: L2IngestRequest = {
-            correlation_id: correlationId,
-            signal_id: signalId,
-            source: "tiktok",
-            raw_text: rawText,
-            metadata: {
-                author: "synthetic_user_" + i,
-                source_url: `https://www.tiktok.com/@synthetic_user_${i}/video/${Date.now()}_${i}`
-            }
+        const isSyntheticTest = i % 5 === 0; // Every 5th signal is synthetic/broken
+        const author = isSyntheticTest ? (i % 2 === 0 ? "unknown" : "synthetic_user_" + i) : "real_user_" + i;
+        const sourceUrl = isSyntheticTest ? (i % 2 === 0 ? "https://www.tiktok.com/@unknown/video/123" : `https://www.tiktok.com/@synthetic_user_${i}/video/${Date.now()}_${i}`) : `https://www.tiktok.com/@real_user_${i}/video/${Date.now()}_${i}`;
+
+        const sampleRaw: any = {
+            id: signalId,
+            text: rawText,
+            author: { uniqueId: author },
+            webVideoUrl: sourceUrl,
+            createTimeISO: new Date().toISOString()
         };
 
-        // 2. Process
-        const bundle = processL2Request(sample);
+        // 2. Normalize (This applies the T03.x + Follow-up guards)
+        const { normalizeTikTokItem } = require('./ingestion/tiktok/normalize');
+        const normalized = normalizeTikTokItem(sampleRaw);
 
+        if (!normalized) {
+            console.log(`[Scan] Signal ${signalId} rejected by provenance/synthetic guard (Author: ${author})`);
+            continue;
+        }
 
-        // 3. Log to l2_logs.txt (Lifecycle Report format)
+        // 3. Process
+        const bundle = processL2Request(normalized);
+
+        // 4. Log to l2_logs.txt (Lifecycle Report format)
         const logEntry = {
             event: "signal_lifecycle_report",
             timestamp: new Date().toISOString(),
@@ -99,6 +108,7 @@ async function runSyntheticScan() {
                 }
             }
         };
+
 
         fs.appendFileSync(logsPath, JSON.stringify(logEntry) + "\n");
         

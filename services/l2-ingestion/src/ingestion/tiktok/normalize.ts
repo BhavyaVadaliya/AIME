@@ -61,6 +61,27 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest | null {
         return null;
     }
 
+    // 2. Synthetic & Fallback Identity Filter (T03.x Follow-up)
+    const isSynthetic = authorName.toLowerCase().includes('synthetic') || 
+                        authorName.toLowerCase().includes('unknown') || 
+                        sourceUrl.toLowerCase().includes('@synthetic') || 
+                        sourceUrl.toLowerCase().includes('@unknown');
+
+    if (isSynthetic) {
+        console.log(JSON.stringify({
+            event: "signal_rejected_synthetic_source",
+            timestamp: new Date().toISOString(),
+            source: "tiktok",
+            signal_id: rawItem.id || rawItem.video_id,
+            author_username: authorName,
+            source_url: sourceUrl,
+            reason: "synthetic_source_identity",
+            status: "rejected"
+        }));
+        return null;
+    }
+
+
     const canonicalSignal = {
         source: "tiktok",
         text: text,
