@@ -110,14 +110,20 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
             console.log(`[Admin] Attempting scan trigger: ${url}`);
             const response = await axios.get(url, { timeout: 8000 });
             
-            successfulUrl = url;
-            console.log(`[Admin] SCAN SUCCESS: Triggered via ${url}`);
-            return res.json({ 
-                status: 'success', 
-                message: `Scan triggered successfully`,
-                attempted_url: url,
-                data: response.data 
-            });
+            // STRICT VALIDATION: Ensure we actually hit the L2 service and not a generic 200 page
+            if (response.data && response.data.status === 'accepted') {
+                successfulUrl = url;
+                console.log(`[Admin] SCAN SUCCESS: Validated trigger via ${url}`);
+                return res.json({ 
+                    status: 'success', 
+                    message: `Scan triggered successfully`,
+                    attempted_url: url,
+                    data: response.data 
+                });
+            } else {
+                console.warn(`[Admin] URL ${url} returned 200 but invalid body:`, response.data);
+                throw new Error("Invalid service response body");
+            }
         } catch (error: any) {
             lastError = error;
             console.warn(`[Admin] Failed ${url}: ${error.message} (${error.response?.status || error.code})`);
@@ -126,13 +132,16 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
                 try {
                     console.log(`[Admin] 405 received. Retrying with POST: ${url}`);
                     const postResponse = await axios.post(url, {}, { timeout: 8000 });
-                    successfulUrl = url;
-                    return res.json({ 
-                        status: 'success', 
-                        message: `Scan triggered successfully via POST`,
-                        attempted_url: url,
-                        data: postResponse.data 
-                    });
+                    
+                    if (postResponse.data && postResponse.data.status === 'accepted') {
+                        successfulUrl = url;
+                        return res.json({ 
+                            status: 'success', 
+                            message: `Scan triggered successfully via POST`,
+                            attempted_url: url,
+                            data: postResponse.data 
+                        });
+                    }
                 } catch (postError: any) {
                     console.warn(`[Admin] POST fallback also failed for ${url}`);
                 }

@@ -11,8 +11,19 @@ const client = new ApifyClient({
 });
 
 function getConfigPath(): string {
-    const rootDir = path.join(__dirname, '..', '..', '..', '..', '..');
-    return path.join(rootDir, 'config', 'ingestion', 'tiktok_scope.json');
+    const possibleRoots = [
+        path.join(__dirname, '..', '..', '..', '..', '..'), // src/dist deep
+        path.join(process.cwd()),                         // root
+        path.join(process.cwd(), 'services', 'l2-ingestion') // monorepo root
+    ];
+
+    for (const root of possibleRoots) {
+        const p = path.join(root, 'config', 'ingestion', 'tiktok_scope.json');
+        if (fs.existsSync(p)) return p;
+    }
+    
+    // Fallback to original
+    return path.join(__dirname, '..', '..', '..', '..', '..', 'config', 'ingestion', 'tiktok_scope.json');
 }
 
 export async function fetchTikTokSignals(hashtags: string[], maxSignals: number, accounts: string[] = []): Promise<any[]> {
