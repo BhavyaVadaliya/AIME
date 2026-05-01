@@ -306,9 +306,25 @@ export const DashboardLitePage: React.FC = () => {
                 onClose={() => setSelectedSignal(null)} 
                 mapCategoryLabel={mapCategoryLabel} 
             />
+
+            {/* Version Footer */}
+            <footer className="mt-12 pt-8 border-t border-slate-800/50 flex justify-between items-center text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                <div className="flex items-center gap-4">
+                    <span>AIME Governance Node v1.2.0</span>
+                    <div className="w-1 h-1 rounded-full bg-slate-800" />
+                    <span>Build: S11-T06-P1</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                    </div>
+                    <span>Live Verification: May 01, 2026 (14:56)</span>
+                </div>
+            </footer>
         </div>
     );
 };
+
 
 const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClick }: { signal: Signal, count: number, mapCategoryLabel: (c: string) => string, isLowValue?: boolean, onClick: () => void }) => {
     const s = signal.structured_post;

@@ -77,7 +77,9 @@ app.use((_req, res) => {
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
-  console.log(`AIME Core API listening on port ${PORT}`);
+  console.log(`AIME Core API v1.2.0 (Build: S11-T06-P1) listening on port ${PORT}`);
+  console.log(`[Startup] Scan Discovery logic updated: May 01, 2026`);
 });
+
 
 export default app;
