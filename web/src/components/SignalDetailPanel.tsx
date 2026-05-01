@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
-import { X, Shield, Activity, Share2, ChevronRight, FileJson } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Shield, Activity, Share2, ChevronRight, FileJson, MessageCircle } from 'lucide-react';
 import { SignalScoreBreakdown } from './SignalScoreBreakdown';
 import { SignalSourceBlock } from './SignalSourceBlock';
 import { SignalClassificationBlock } from './SignalClassificationBlock';
 import { SuggestedReplyPanel } from './SuggestedReplyPanel';
 import { EngagementAnglePanel } from './EngagementAnglePanel';
+import { RespondWorkspace } from './RespondWorkspace';
+import { getEngagementContext } from '../utils/engagementLogic';
 
 interface Signal {
     signal_id: string;
@@ -43,6 +45,8 @@ interface PanelProps {
 }
 
 export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCategoryLabel }) => {
+    const [isRespondOpen, setIsRespondOpen] = useState(false);
+
     // Prevent body scroll when panel is open
     useEffect(() => {
         if (signal) {
@@ -56,6 +60,7 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
     if (!signal) return null;
 
     const s = signal.structured_post;
+    const engagementContext = getEngagementContext(s?.classification.primary_category);
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -188,15 +193,32 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                     </details>
                 </div>
 
-                {/* Footer */}
-                <div className="p-6 border-t border-slate-800 bg-slate-900/80 backdrop-blur-md">
+                {/* Footer Actions */}
+                <div className="p-6 border-t border-slate-800 bg-slate-950/80 backdrop-blur-md flex flex-col gap-3">
+                    <button 
+                        onClick={() => setIsRespondOpen(true)}
+                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-sm rounded-2xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-3 active:scale-[0.98]"
+                    >
+                        <MessageCircle className="w-5 h-5" />
+                        Respond to Signal
+                    </button>
                     <button 
                         onClick={onClose}
-                        className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl transition-all border border-slate-700"
+                        className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold rounded-2xl transition-all border border-slate-700"
                     >
                         Close Detail View
                     </button>
                 </div>
+
+                {/* Respond Workspace Overlay */}
+                <RespondWorkspace 
+                    isOpen={isRespondOpen}
+                    onClose={() => setIsRespondOpen(false)}
+                    signal={signal}
+                    suggestedReply={engagementContext.replies[0]?.text || ''}
+                    engagementAngle={engagementContext.primaryAngle}
+                    engagementRationale={engagementContext.primaryRationale}
+                />
             </div>
 
             <style>{`
@@ -208,3 +230,4 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
         </div>
     );
 };
+

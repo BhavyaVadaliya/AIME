@@ -3,6 +3,8 @@ import { MessageSquare, Sparkles, Send } from 'lucide-react';
 import { ReplyVariationCard } from './ReplyVariationCard';
 import { CtaDirectionHint } from './CtaDirectionHint';
 
+import { getEngagementContext } from '../utils/engagementLogic';
+
 interface Props {
     category: string;
     type: string;
@@ -10,55 +12,8 @@ interface Props {
 }
 
 export const SuggestedReplyPanel: React.FC<Props> = ({ category, type, rawText }) => {
-    // Deterministic Suggestion Logic (Local/Presentation side only)
-    const getSuggestions = () => {
-        const cat = category.toUpperCase();
-        
-        if (cat.includes('MONETIZATION')) {
-            return {
-                direction: "Qualify Intent & ROI",
-                replies: [
-                    { label: "Value-First", text: "Many start exactly where you are. Have you looked into the ROI for this specific path?" },
-                    { label: "Curiosity", text: "Thinking about taking the leap? What's your biggest question about the investment?" }
-                ],
-                outreach: "Curious what path you're exploring in nutrition. Would love to hear your goals."
-            };
-        }
+    const suggestions = getEngagementContext(category);
 
-        if (cat.includes('PROFESSIONAL_PATHWAY') || cat.includes('CAREER')) {
-            return {
-                direction: "Offer Guidance / Roadmap",
-                replies: [
-                    { label: "Empathy", text: "The journey to becoming a clinician is rewarding. What part of the process are you in?" },
-                    { label: "Assistance", text: "I've seen many navigate this transition. Happy to share what the first steps usually look like." }
-                ],
-                outreach: "Noticed you're looking into the RD path. Happy to connect if you have questions!"
-            };
-        }
-
-        if (cat.includes('EDUCATION')) {
-            return {
-                direction: "Educate & Inform",
-                replies: [
-                    { label: "Science-Oriented", text: "Evidence-based knowledge is key. Have you seen our curriculum breakdown?" },
-                    { label: "Curiosity", text: "Learning the science is step one. What specific area of nutrition interests you most?" }
-                ],
-                outreach: "Curiosity is the best start. Are you looking for a formal certification?"
-            };
-        }
-
-        // Fallback / General
-        return {
-            direction: "Open Conversation",
-            replies: [
-                { label: "Engagement", text: "Interesting perspective! How did you first get interested in this topic?" },
-                { label: "Value", text: "Thanks for sharing this! Would love to hear more about your thoughts on it." }
-            ],
-            outreach: "Love your content! Curious to hear more about your nutrition journey."
-        };
-    };
-
-    const suggestions = getSuggestions();
 
     return (
         <div className="bg-slate-900/40 rounded-3xl border border-slate-700/50 overflow-hidden shadow-2xl">

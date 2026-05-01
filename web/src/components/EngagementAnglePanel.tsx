@@ -2,6 +2,7 @@ import React from 'react';
 import { Target, HelpCircle } from 'lucide-react';
 import { AngleRecommendationCard } from './AngleRecommendationCard';
 import { EngagementRiskCue } from './EngagementRiskCue';
+import { getEngagementContext } from '../utils/engagementLogic';
 
 interface Props {
     category: string;
@@ -9,63 +10,7 @@ interface Props {
 }
 
 export const EngagementAnglePanel: React.FC<Props> = ({ category, type }) => {
-    // Deterministic Strategy Logic (Local/Presentation side only)
-    const getStrategyGuidance = () => {
-        const cat = category.toUpperCase();
-        
-        if (cat.includes('MONETIZATION')) {
-            return {
-                primary: {
-                    angle: "Qualify Intent Before Pitch",
-                    rationale: "High-intent inquiry detected. Establish baseline goals before offering specific solutions to avoid premature friction."
-                },
-                alternates: [
-                    { angle: "Education First", rationale: "Provide value by answering the technical aspect before discussing enrollment." }
-                ],
-                risk: "Avoid pitching too early. Ensure the user feels understood before discussing investment."
-            };
-        }
-
-        if (cat.includes('PROFESSIONAL_PATHWAY') || cat.includes('CAREER')) {
-            return {
-                primary: {
-                    angle: "Guide Through Experience",
-                    rationale: "Career-related query. Shared experience builds authority and trust while humanizing the brand."
-                },
-                alternates: [
-                    { angle: "Invite Conversation", rationale: "Ask about their current professional background to customize advice." }
-                ],
-                risk: "Avoid overwhelming with technical details. Keep the roadmap encouraging and digestible."
-            };
-        }
-
-        if (cat.includes('EDUCATION')) {
-            return {
-                primary: {
-                    angle: "Educate First",
-                    rationale: "Scientific or educational curiosity detected. High-value knowledge builds top-of-funnel trust and credibility."
-                },
-                alternates: [
-                    { angle: "Probe Pain Point", rationale: "Identify if they are struggling with a specific concept to offer deeper help." }
-                ],
-                risk: "Ensure information is evidence-based. Avoid marketing language in this specific touchpoint."
-            };
-        }
-
-        // Fallback / General
-        return {
-            primary: {
-                angle: "Invite Conversation",
-                rationale: "Signal level indicates generic interest. Best move is to probe for more context via a clarifying question."
-            },
-            alternates: [
-                { angle: "Educate First", rationale: "Share a related insight to spark deeper interest in the topic." }
-            ],
-            risk: "Conversation-first recommended. Do not lead with a call-to-action."
-        };
-    };
-
-    const strategy = getStrategyGuidance();
+    const strategy = getEngagementContext(category);
 
     return (
         <div className="bg-slate-900/40 rounded-3xl border border-slate-700/50 overflow-hidden shadow-2xl">
@@ -94,8 +39,8 @@ export const EngagementAnglePanel: React.FC<Props> = ({ category, type }) => {
                 {/* Primary Recommendation */}
                 <AngleRecommendationCard 
                     isPrimary 
-                    angle={strategy.primary.angle} 
-                    rationale={strategy.primary.rationale} 
+                    angle={strategy.primaryAngle} 
+                    rationale={strategy.primaryRationale} 
                 />
 
                 {/* Alternates */}
