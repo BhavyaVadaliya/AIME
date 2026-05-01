@@ -3,15 +3,10 @@ import { runTikTokHarvest } from './harvest';
 import { processL2Request } from '../../logic';
 
 const isRender = !!process.env.RENDER;
-const CORE_API_URL = process.env.CORE_API_URL || 
-                    (isRender 
-                     ? 'http://aime-core:4000/api'
-                     : 'http://localhost:4000/api');
+const CORE_API_URL = process.env.CORE_API_URL || 'https://aime-0vwz.onrender.com/api';
 
-const RTCE_URL = process.env.RTCE_URL || 
-                (isRender 
-                 ? 'http://rtce-text:3002/v1/rtce/decide' 
-                 : 'http://localhost:3002/v1/rtce/decide');
+const RTCE_URL = process.env.RTCE_URL || 'https://rtce-text.onrender.com/v1/rtce/decide';
+
 
 
 export async function routeTikTokHarvest() {

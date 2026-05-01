@@ -73,6 +73,10 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     
     const urlsToTry: string[] = [];
     
+    // 0. SPECIFIC PRODUCTION TARGETS (Highest Priority)
+    urlsToTry.push(`https://l2-ingestion.onrender.com/v1/harvest`);
+    urlsToTry.push(`https://l2-ingestion.onrender.com/harvest`);
+    
     // 1. Internal hostnames first (preferred for Render efficiency)
     for (const h of hostnames) {
         for (const p of ports) {
