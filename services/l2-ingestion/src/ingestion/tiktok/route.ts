@@ -5,15 +5,14 @@ import { processL2Request } from '../../logic';
 const isRender = !!process.env.RENDER;
 const CORE_API_URL = process.env.CORE_API_URL || 
                     (isRender 
-                     ? 'http://aime-0vwz:4000/api'
-                     : (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
-                        ? 'https://aime-0vwz.onrender.com/api' 
-                        : 'https://aime-0vwz.onrender.com/api'));
+                     ? 'http://aime-core:4000/api'
+                     : 'http://localhost:4000/api');
 
 const RTCE_URL = process.env.RTCE_URL || 
                 (isRender 
                  ? 'http://rtce-text:3002/v1/rtce/decide' 
-                 : 'https://rtce-text.onrender.com/v1/rtce/decide');
+                 : 'http://localhost:3002/v1/rtce/decide');
+
 
 export async function routeTikTokHarvest() {
     let batchSize = 0;

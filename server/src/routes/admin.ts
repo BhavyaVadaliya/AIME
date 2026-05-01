@@ -62,27 +62,18 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
  * Reuses the existing ingestion service endpoint.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
-    // ROBUST DETECTION: Determine if we are running locally or on Render
-    const isLocal = req.hostname === 'localhost' || 
-                    req.hostname === '127.0.0.1' || 
-                    !req.hostname.includes('onrender.com');
-    
     const isRender = !!process.env.RENDER;
+    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
 
+    
     // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
     const hostnames = isRender ? ['l2-ingestion', 'l2-ingestion-s7', 'aime-l2-ingestion', 'localhost'] : ['localhost'];
-
     const ports = ['3001', '10000', '80'];
-
     const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
     
-    // Also include the public URL as a last resort
-    const publicBase = `https://l2-ingestion.onrender.com`;
-    const liveCoreBase = `https://aime-0vwz.onrender.com`;
-
     const urlsToTry: string[] = [];
     
-    // 1. Internal hostnames first (preferred)
+    // 1. Internal hostnames first (preferred for Render efficiency)
     for (const h of hostnames) {
         for (const p of ports) {
             for (const path of paths) {
@@ -92,38 +83,47 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         }
     }
     
-    // 2. Public URL variations (Derive from current request if possible)
+    // 2. Public URL variations (Derive from current request hostname)
     const currentHostname = req.hostname;
-    const baseSlug = currentHostname.split('.')[0].replace('-core', '').replace('aime-', '');
-    
-    const publicVariations = [
-        `https://${baseSlug}-l2-ingestion.onrender.com`,
-        `https://l2-ingestion-${baseSlug}.onrender.com`,
-        `https://aime-l2-ingestion.onrender.com`,
-        publicBase
-    ];
+    if (currentHostname.includes('.onrender.com')) {
+        const baseSlug = currentHostname.split('.')[0].replace('-core', '').replace('aime-', '');
+        
+        // Try multiple naming patterns common on Render
+        const publicBases = [
+            `https://${baseSlug}-l2-ingestion.onrender.com`,
+            `https://l2-ingestion-${baseSlug}.onrender.com`,
+            `https://${baseSlug}-l2.onrender.com`,
+            `https://l2-${baseSlug}.onrender.com`
+        ];
 
-    for (const base of publicVariations) {
-        for (const path of paths) {
-            urlsToTry.push(`${base}${path}`);
+        for (const base of publicBases) {
+            for (const path of paths) {
+                urlsToTry.push(`${base}${path}`);
+            }
         }
     }
 
-    // 3. Environment variable override
+    // 3. Fallback to common defaults if no match yet
+    urlsToTry.push(`https://l2-ingestion.onrender.com/v1/harvest`);
+
+    // 4. Environment variable override (Highest Priority if set)
     if (process.env.HARVEST_URL) {
         urlsToTry.unshift(process.env.HARVEST_URL);
     }
 
-
     let lastError: any = null;
     let successfulUrl = '';
 
-    console.log(`[Admin] Starting Scan Discovery [Render: ${isRender}]. Candidates: ${urlsToTry.length}`);
+    console.log(`[Admin] Starting Scan Discovery [Render: ${isRender}]. Host: ${currentHostname}. Candidates: ${urlsToTry.length}`);
 
     for (const url of urlsToTry) {
+        // Skip local URLs if we are running on a live Render site (safety guard)
+        if (isRender && url.includes('localhost') && !isLocal) continue;
+
         try {
             console.log(`[Admin] Attempting scan trigger: ${url}`);
-            const response = await axios.get(url, { timeout: 8000 });
+            const response = await axios.get(url, { timeout: 10000 });
+
             
             // STRICT VALIDATION: Ensure we actually hit the L2 service and not a generic 200 page
             if (response.data && response.data.status === 'accepted') {

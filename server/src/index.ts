@@ -15,8 +15,9 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from "./routes/admin.js";
 import { connectDB } from './db.js';
 
-// Connect to Database
-connectDB();
+// Connect to Database (Disabled as per user request for log-only mode)
+// connectDB();
+
 
 const app = express();
 const PORT = process.env.PORT || 4000;
