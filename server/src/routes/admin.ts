@@ -72,7 +72,8 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
     const hostnames = isRender ? ['l2-ingestion', 'l2-ingestion-s7', 'aime-l2-ingestion', 'localhost'] : ['localhost'];
 
-    const ports = ['3001'];
+    const ports = ['3001', '10000', '80'];
+
     const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
     
     // Also include the public URL as a last resort
@@ -86,20 +87,26 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         for (const p of ports) {
             for (const path of paths) {
                 urlsToTry.push(`http://${h}:${p}${path}`);
+                if (p === '80') urlsToTry.push(`http://${h}${path}`);
             }
         }
     }
     
     // 2. Public URL variations (Derive from current request if possible)
     const currentHostname = req.hostname;
-    const derivedPublicBase = currentHostname.includes('.onrender.com') 
-        ? `https://${currentHostname.split('.')[0].replace('-core', '').replace('aime-', '')}-l2-ingestion.onrender.com`
-        : null;
+    const baseSlug = currentHostname.split('.')[0].replace('-core', '').replace('aime-', '');
+    
+    const publicVariations = [
+        `https://${baseSlug}-l2-ingestion.onrender.com`,
+        `https://l2-ingestion-${baseSlug}.onrender.com`,
+        `https://aime-l2-ingestion.onrender.com`,
+        publicBase
+    ];
 
-    for (const path of paths) {
-        if (derivedPublicBase) urlsToTry.push(`${derivedPublicBase}${path}`);
-        urlsToTry.push(`${publicBase}${path}`);
-        urlsToTry.push(`${liveCoreBase.replace('aime-0vwz', 'l2-ingestion')}${path}`);
+    for (const base of publicVariations) {
+        for (const path of paths) {
+            urlsToTry.push(`${base}${path}`);
+        }
     }
 
     // 3. Environment variable override
