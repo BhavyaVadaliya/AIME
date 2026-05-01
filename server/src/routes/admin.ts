@@ -70,7 +70,8 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     const isRender = !!process.env.RENDER;
 
     // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
-    const hostnames = isRender ? ['l2-ingestion', 'l2-ingestion-s7', 'localhost'] : ['localhost'];
+    const hostnames = isRender ? ['l2-ingestion', 'l2-ingestion-s7', 'aime-l2-ingestion', 'localhost'] : ['localhost'];
+
     const ports = ['3001'];
     const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
     
@@ -89,8 +90,14 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         }
     }
     
-    // 2. Public URL variations
+    // 2. Public URL variations (Derive from current request if possible)
+    const currentHostname = req.hostname;
+    const derivedPublicBase = currentHostname.includes('.onrender.com') 
+        ? `https://${currentHostname.split('.')[0].replace('-core', '').replace('aime-', '')}-l2-ingestion.onrender.com`
+        : null;
+
     for (const path of paths) {
+        if (derivedPublicBase) urlsToTry.push(`${derivedPublicBase}${path}`);
         urlsToTry.push(`${publicBase}${path}`);
         urlsToTry.push(`${liveCoreBase.replace('aime-0vwz', 'l2-ingestion')}${path}`);
     }
@@ -99,6 +106,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     if (process.env.HARVEST_URL) {
         urlsToTry.unshift(process.env.HARVEST_URL);
     }
+
 
     let lastError: any = null;
     let successfulUrl = '';

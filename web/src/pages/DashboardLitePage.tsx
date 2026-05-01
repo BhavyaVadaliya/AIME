@@ -45,8 +45,10 @@ export const DashboardLitePage: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'https://aime-0vwz.onrender.com';
+            const apiUrl = import.meta.env.VITE_API_URL || 
+                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : window.location.origin);
             const response = await fetch(`${apiUrl}/admin/governance/signals`);
+
             const data = await response.json();
             
             // Map signals and group by text
@@ -70,10 +72,12 @@ export const DashboardLitePage: React.FC = () => {
         
         setScanStatus('Running');
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'https://aime-0vwz.onrender.com';
+            const apiUrl = import.meta.env.VITE_API_URL || 
+                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : window.location.origin);
             const response = await fetch(`${apiUrl}/admin/governance/scan`, {
                 method: 'POST'
             });
+
             
             if (response.ok) {
                 setScanStatus('Complete');
