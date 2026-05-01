@@ -46,8 +46,9 @@ export const DashboardLitePage: React.FC = () => {
     const fetchData = async () => {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 
-                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : window.location.origin);
+                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://aime-0vwz.onrender.com');
             const response = await fetch(`${apiUrl}/admin/governance/signals`);
+
 
             const data = await response.json();
             
@@ -73,10 +74,11 @@ export const DashboardLitePage: React.FC = () => {
         setScanStatus('Running');
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 
-                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : window.location.origin);
+                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://aime-0vwz.onrender.com');
             const response = await fetch(`${apiUrl}/admin/governance/scan`, {
                 method: 'POST'
             });
+
 
             
             if (response.ok) {

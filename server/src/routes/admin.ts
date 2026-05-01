@@ -122,7 +122,8 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
 
         try {
             console.log(`[Admin] Attempting scan trigger: ${url}`);
-            const response = await axios.get(url, { timeout: 10000 });
+            const response = await axios.get(url, { timeout: 60000 });
+
 
             
             // STRICT VALIDATION: Ensure we actually hit the L2 service and not a generic 200 page
