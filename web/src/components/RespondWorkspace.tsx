@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageSquare, Copy, ExternalLink, ShieldCheck, Target, Type } from 'lucide-react';
+import { X, MessageSquare, Copy, ExternalLink, ShieldCheck, Target, Type, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { createExecutionPayload, validateExecutionPayload, stageExecutionPayload } from '../utils/executionEngine';
+import { ExecutionValidationResult } from '../types/execution';
 
 interface Props {
     isOpen: boolean;
@@ -20,18 +22,45 @@ export const RespondWorkspace: React.FC<Props> = ({
 }) => {
     const [draft, setDraft] = useState(suggestedReply);
     const [copyStatus, setCopyStatus] = useState('Copy Response');
+    const [executionReady, setExecutionReady] = useState<ExecutionValidationResult | null>(null);
+    const [isStaged, setIsStaged] = useState(false);
 
     // Sync draft with suggested reply when signal changes or workspace opens
     useEffect(() => {
         setDraft(suggestedReply);
+        setExecutionReady(null);
+        setIsStaged(false);
     }, [suggestedReply, isOpen]);
 
     if (!isOpen || !signal) return null;
+
+    const s = signal.structured_post;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(draft);
         setCopyStatus('Copied!');
         setTimeout(() => setCopyStatus('Copy Response'), 2000);
+    };
+
+    const handlePrepareExecution = () => {
+        if (!s) return;
+
+        const payload = createExecutionPayload(
+            signal.signal_id,
+            s.source?.platform.toLowerCase() || 'tiktok',
+            'comment_reply',
+            s.source?.source_url || '',
+            draft,
+            s.source?.author_id
+        );
+
+        const validation = validateExecutionPayload(payload);
+        setExecutionReady(validation);
+
+        if (validation.ok) {
+            stageExecutionPayload(payload);
+            setIsStaged(true);
+        }
     };
 
     return (
@@ -46,7 +75,7 @@ export const RespondWorkspace: React.FC<Props> = ({
                         </div>
                         <div>
                             <h2 className="text-white text-xl font-black uppercase tracking-tight">Respond Workspace</h2>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">S11-T06 Preparation Layer</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">S11-T06 Preparation Layer & S12-T01 Execution Bridge</p>
                         </div>
                     </div>
                     <button 
@@ -104,9 +133,43 @@ export const RespondWorkspace: React.FC<Props> = ({
                             </p>
                         </section>
 
+                        {/* Sprint 12 Execution Readiness Section */}
+                        <section className="bg-slate-950/40 p-5 rounded-2xl border border-slate-700/50">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Zap className="w-3 h-3 text-amber-400" />
+                                <h3 className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Execution Readiness</h3>
+                            </div>
+                            <div className="space-y-3">
+                                <ReadinessItem label="Platform" status={s?.source?.platform.toLowerCase() === 'tiktok' ? 'ok' : 'unsupported'} text={s?.source?.platform || 'unknown'} />
+                                <ReadinessItem label="Action" status="ok" text="comment_reply" />
+                                <ReadinessItem label="Source Link" status={s?.source?.source_url ? 'ok' : 'missing'} text={s?.source?.source_url ? 'Validated' : 'Missing'} />
+                                <ReadinessItem label="Reply Text" status={draft.trim().length > 0 ? 'ok' : 'missing'} text={draft.trim().length > 0 ? 'Ready' : 'Required'} />
+                                
+                                {executionReady && (
+                                    <div className={`mt-4 p-3 rounded-xl border flex items-start gap-2 ${
+                                        executionReady.ok ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'
+                                    }`}>
+                                        {executionReady.ok ? (
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                        ) : (
+                                            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                                        )}
+                                        <div className="flex flex-col">
+                                            <p className={`text-[11px] font-black uppercase ${executionReady.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {executionReady.ok ? 'Payload Staged' : 'Readiness Error'}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 leading-tight">
+                                                {executionReady.ok ? 'Execution preparation ready for Sprint 12. No action taken yet.' : `Reason: ${executionReady.reason}`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+
                         <div className="bg-slate-800/20 p-5 rounded-2xl border border-slate-800 italic">
                             <p className="text-[10px] text-slate-500 leading-normal">
-                                Advisory: Response prepared in AIME remains local. Use the copy button to transfer to the platform.
+                                Advisory: Response prepared in AIME remains local. Use the copy button to transfer to the platform. Execution prep is advisory only.
                             </p>
                         </div>
                     </div>
@@ -134,21 +197,25 @@ export const RespondWorkspace: React.FC<Props> = ({
                         {/* Actions */}
                         <div className="flex items-center gap-4 pt-2">
                             <button
+                                onClick={handlePrepareExecution}
+                                className={`flex-1 flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg ${
+                                    isStaged 
+                                    ? 'bg-emerald-600 text-white shadow-emerald-500/20' 
+                                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
+                                }`}
+                            >
+                                <Zap className="w-5 h-5" />
+                                {isStaged ? 'Payload Staged' : 'Prepare Execution'}
+                            </button>
+                            <button
                                 onClick={handleCopy}
-                                className="flex-1 flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-sm py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-indigo-500/20"
+                                className={`flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 px-8 rounded-2xl transition-all border border-slate-700 active:scale-[0.98] ${
+                                    copyStatus === 'Copied!' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                                }`}
                             >
                                 <Copy className="w-5 h-5" />
                                 {copyStatus}
                             </button>
-                            <a
-                                href={signal.structured_post?.source?.source_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black uppercase tracking-widest text-sm py-5 px-8 rounded-2xl transition-all"
-                            >
-                                <ExternalLink className="w-5 h-5" />
-                                Open Source
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -165,3 +232,18 @@ export const RespondWorkspace: React.FC<Props> = ({
         </div>
     );
 };
+
+const ReadinessItem = ({ label, status, text }: { label: string, status: 'ok' | 'unsupported' | 'missing', text: string }) => (
+    <div className="flex items-center justify-between text-[11px]">
+        <span className="text-slate-500 font-bold">{label}</span>
+        <div className="flex items-center gap-2">
+            <span className={`font-mono ${status === 'ok' ? 'text-slate-300' : 'text-red-400 italic'}`}>{text}</span>
+            {status === 'ok' ? (
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+            ) : (
+                <AlertCircle className="w-3 h-3 text-red-400" />
+            )}
+        </div>
+    </div>
+);
+
