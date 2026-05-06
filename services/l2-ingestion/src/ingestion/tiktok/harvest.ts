@@ -37,10 +37,10 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
     let guardrails = {
         max_requests_per_cycle: 10,
         max_pages_per_query: 3,
-        max_signals_pre_cap: 75,
+        max_signals_pre_cap: 100,
         min_rate_limit_remaining: 5,
         backoff_ms: 1000,
-        max_cycle_duration_ms: 30000
+        max_cycle_duration_ms: 60000
     };
     if (fs.existsSync(guardrailsPath)) {
         guardrails = JSON.parse(fs.readFileSync(guardrailsPath, 'utf8'));
@@ -83,7 +83,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         if (page === 1 && accounts && accounts.length > 0) {
             const profileInput = {
                 profiles: accounts.map(acc => acc.startsWith('@') ? acc : `@${acc.split('@').pop()}`),
-                resultsPerPage: 25,
+                resultsPerPage: 50,
                 shouldScrapeComments: true
             };
             try {
@@ -101,7 +101,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         if (hashtags && hashtags.length > 0 && combinedItems.length < guardrails.max_signals_pre_cap) {
             const hashtagInput = {
                 hashtags: hashtags,
-                resultsPerPage: 25,
+                resultsPerPage: 50,
                 page: page,
                 shouldScrapeComments: true
             };
@@ -148,7 +148,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         event: "discovery_guardrail_summary",
         pages_fetched: pages.length,
         signals_pre_cap: combinedItems.length,
-        signals_post_cap: 25,
+        signals_post_cap: 50,
         duration_ms: Date.now() - cycleStartTime,
         status: "ok"
     }));
