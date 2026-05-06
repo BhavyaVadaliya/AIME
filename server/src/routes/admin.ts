@@ -3,6 +3,7 @@ import axios from "axios";
 import Signal from "../models/Signal.js";
 import fs from "fs";
 import path from "path";
+import { supabase } from "../lib/supabase.js";
 
 const router = Router();
 
@@ -13,46 +14,18 @@ const router = Router();
  */
 router.get("/governance/signals", async (req: Request, res: Response) => {
   try {
-    const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
-    console.log(`[Admin] Reading logs from: ${logPath}`); // Audit log
-    if (!fs.existsSync(logPath)) {
-      console.warn(`[Admin] Log file not found at: ${logPath}`);
-      return res.json([]);
-    }
+    const { data: signals, error } = await supabase
+      .from('signals')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
 
-    const content = fs.readFileSync(logPath, "utf8");
-    const lines = content.split("\n").filter(l => l.trim().length > 0);
-    console.log(`[Admin] Total lines in log: ${lines.length}`);
-    
-    // Parse logs and extract lifecycle reports
-    const signals: any[] = [];
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line.trim());
-        if (entry.event === "signal_lifecycle_report") {
-          // Backward compatibility for simulated signals vs real LifecycleReports
-          let structured_post = entry.structured_post?.data || entry.structured_post;
-          if (!structured_post && entry.lifecycle?.structured_post) {
-            structured_post = entry.lifecycle.structured_post.data || entry.lifecycle.structured_post;
-          }
+    if (error) throw error;
 
-          signals.unshift({
-              signal_id: entry.signal_id,
-              correlation_id: entry.correlation_id,
-              timestamp: entry.timestamp,
-              structured_post
-          });
-        }
-      } catch (e) { 
-          // skip
-      }
-    }
-    console.log(`[Admin] Found ${signals.length} lifecycle reports`);
-
-    return res.json(signals.slice(0, 50));
+    return res.json(signals || []);
   } catch (error) {
     console.error("Governance signals read error:", error);
-    return res.status(500).json({ error: "Failed to read governance logs" });
+    return res.status(500).json({ error: "Failed to read governance database" });
   }
 });
 
@@ -232,24 +205,78 @@ router.get("/metrics", async (req: Request, res: Response) => {
 router.post("/signals", async (req: Request, res: Response) => {
   try {
     const signalData = req.body;
-    // Basic validation
+    
+    // 1. Mandatory Signal ID
     if (!signalData.signal_id) {
-      console.warn("[Admin] Received signal with missing ID:", signalData);
       return res.status(400).json({ error: "Missing signal_id" });
     }
 
-    console.log(`[Admin] RECEIVED SIGNAL: ${signalData.signal_id} (${signalData.correlation_id})`);
+    const structuredPost = signalData.structured_post?.data || signalData.structured_post;
+    const sourceUrl = structuredPost?.source?.source_url || signalData.source_url;
+    const username = structuredPost?.source?.username || signalData.username || 'unknown';
 
-    // Persist to log file so Dashboard Lite can see it (S11 Distributed Fix)
+    // 2. Source Validity Guards (T03.x Persistence Enforcement)
+    const isSynthetic = (username.toLowerCase().includes('synthetic') || 
+                        username.toLowerCase().includes('unknown') || 
+                        (sourceUrl && (sourceUrl.toLowerCase().includes('@unknown') || sourceUrl.toLowerCase().includes('synthetic'))));
+
+    if (!sourceUrl || isSynthetic) {
+      console.log(JSON.stringify({
+        event: "signal_persistence_rejected_invalid_source",
+        signal_id: signalData.signal_id,
+        reason: !sourceUrl ? "missing_source_url" : "invalid_or_synthetic_source",
+        status: "rejected"
+      }));
+      return res.status(200).json({ success: false, message: "Signal rejected by source guard" });
+    }
+
+    // 3. Persist to Supabase (Minimal Dedupe via source_url)
+    const { error: supabaseError } = await supabase
+      .from('signals')
+      .insert({
+        signal_id: signalData.signal_id,
+        source_url: sourceUrl,
+        platform: structuredPost?.source?.platform || signalData.platform || 'tiktok',
+        username: username,
+        author_id: structuredPost?.source?.author_id || signalData.author_id,
+        raw_text: structuredPost?.raw_text || signalData.raw_text,
+        structured_post: structuredPost,
+        priority_tier: structuredPost?.priority_tier || signalData.priority_tier,
+        signal_score: structuredPost?.signal_score || signalData.signal_score,
+        governance_route: signalData.governance_route,
+        scan_id: signalData.scan_id,
+        status: 'active'
+      });
+
+    if (supabaseError) {
+      if (supabaseError.code === '23505') { // Unique violation
+        console.log(JSON.stringify({
+          event: "signal_persistence_skipped_duplicate",
+          source_url: sourceUrl,
+          reason: "duplicate_source_url",
+          status: "skipped"
+        }));
+        return res.status(200).json({ success: true, message: "Duplicate signal skipped" });
+      }
+      throw supabaseError;
+    }
+
+    console.log(JSON.stringify({
+      event: "signal_persisted",
+      signal_id: signalData.signal_id,
+      source_url: sourceUrl,
+      status: "ok"
+    }));
+
+    // Maintain legacy log file for backup traceability
     const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
-    const entry = {
+    fs.appendFileSync(logPath, JSON.stringify({
         event: "signal_lifecycle_report",
         timestamp: new Date().toISOString(),
         ...signalData
-    };
-    fs.appendFileSync(logPath, JSON.stringify(entry) + "\n");
+    }) + "\n");
 
-    return res.status(201).json({ success: true, message: "Signal logged to file" });
+    return res.status(201).json({ success: true, message: "Signal persisted to Supabase" });
   } catch (error) {
     console.error("Signal ingest error:", error);
     return res.status(500).json({ error: "Failed to store signal" });

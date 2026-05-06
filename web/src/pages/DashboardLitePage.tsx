@@ -52,16 +52,17 @@ export const DashboardLitePage: React.FC = () => {
 
             const data = await response.json();
             
-            // Map signals and group by text
+            // Map signals from Supabase structure
             const mapped = data.map((entry: any) => ({
                 signal_id: entry.signal_id,
-                correlation_id: entry.correlation_id,
-                structured_post: entry.lifecycle?.structured_post?.data || entry.structured_post?.data || entry.structured_post
+                correlation_id: entry.correlation_id || `corr-${entry.signal_id}`,
+                structured_post: entry.structured_post
             }));
 
 
             setSignals(mapped);
             setLoading(false);
+
         } catch (error) {
             console.error('Error fetching signals:', error);
             setLoading(false);
