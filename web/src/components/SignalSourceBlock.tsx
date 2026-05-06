@@ -51,7 +51,7 @@ export const SignalSourceBlock: React.FC<{ source: SourceProps }> = ({ source })
                     <div className="flex items-center gap-2 text-sm text-white font-medium">
                         <User className="w-3.5 h-3.5 text-slate-500" />
                         <span className={identityMatch ? "text-white" : "text-amber-400 font-bold"}>
-                            @{source.username.replace(/^@/, '')}
+                            @{source.username?.replace(/^@/, '') || 'unknown'}
                         </span>
                     </div>
                 </div>

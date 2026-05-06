@@ -140,7 +140,7 @@ export const RespondWorkspace: React.FC<Props> = ({
                                 <h3 className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Execution Readiness</h3>
                             </div>
                             <div className="space-y-3">
-                                <ReadinessItem label="Platform" status={s?.source?.platform.toLowerCase() === 'tiktok' ? 'ok' : 'unsupported'} text={s?.source?.platform || 'unknown'} />
+                                <ReadinessItem label="Platform" status={s?.source?.platform?.toLowerCase() === 'tiktok' ? 'ok' : 'unsupported'} text={s?.source?.platform || 'unknown'} />
                                 <ReadinessItem label="Action" status="ok" text="comment_reply" />
                                 <ReadinessItem label="Source Link" status={s?.source?.source_url ? 'ok' : 'missing'} text={s?.source?.source_url ? 'Validated' : 'Missing'} />
                                 <ReadinessItem label="Reply Text" status={draft.trim().length > 0 ? 'ok' : 'missing'} text={draft.trim().length > 0 ? 'Ready' : 'Required'} />
