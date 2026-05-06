@@ -53,11 +53,18 @@ export const DashboardLitePage: React.FC = () => {
             const data = await response.json();
             
             // Map signals from Supabase structure
-            const mapped = data.map((entry: any) => ({
-                signal_id: entry.signal_id,
-                correlation_id: entry.correlation_id || `corr-${entry.signal_id}`,
-                structured_post: entry.structured_post
-            }));
+            const mapped = data.map((entry: any) => {
+                let sp = entry.structured_post;
+                // Handle double-nesting if present
+                if (sp?.structured_post) sp = sp.structured_post;
+                
+                return {
+                    signal_id: entry.signal_id,
+                    correlation_id: entry.correlation_id || `corr-${entry.signal_id}`,
+                    structured_post: sp
+                };
+            });
+
 
 
             setSignals(mapped);
@@ -83,10 +90,20 @@ export const DashboardLitePage: React.FC = () => {
 
             
             if (response.ok) {
+                const scanData = await response.json();
+                const count = scanData.data?.batch_size || 0;
                 setScanStatus('Complete');
                 fetchData(); // Auto-refresh on completion
+                
+                if (count > 0) {
+                    console.log(`Scan found ${count} signals. Refreshing feed...`);
+                } else {
+                    alert("Scan completed, but no NEW signals were found on TikTok. Try again in a few minutes.");
+                }
+                
                 setTimeout(() => setScanStatus('Idle'), 3000);
             } else {
+
                 const errorData = await response.json();
                 console.error('Scan failed:', errorData);
                 setScanStatus('Failed');

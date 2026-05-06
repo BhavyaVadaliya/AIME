@@ -211,7 +211,12 @@ router.post("/signals", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Missing signal_id" });
     }
 
-    const structuredPost = signalData.structured_post?.data || signalData.structured_post;
+    // Extract structured post and unwrap double-nesting if present
+    let structuredPost = signalData.structured_post?.data || signalData.structured_post;
+    if (structuredPost?.structured_post) {
+      structuredPost = structuredPost.structured_post;
+    }
+
     const sourceUrl = structuredPost?.source?.source_url || signalData.source_url;
     const username = structuredPost?.source?.username || signalData.username || 'unknown';
 
@@ -239,14 +244,15 @@ router.post("/signals", async (req: Request, res: Response) => {
         platform: structuredPost?.source?.platform || signalData.platform || 'tiktok',
         username: username,
         author_id: structuredPost?.source?.author_id || signalData.author_id,
-        raw_text: structuredPost?.raw_text || signalData.raw_text,
+        raw_text: structuredPost?.raw_text || signalData.raw_text || signalData.text || '',
         structured_post: structuredPost,
-        priority_tier: structuredPost?.priority_tier || signalData.priority_tier,
-        signal_score: structuredPost?.signal_score || signalData.signal_score,
-        governance_route: signalData.governance_route,
-        scan_id: signalData.scan_id,
+        priority_tier: structuredPost?.priority_tier || 'LOW',
+        signal_score: structuredPost?.signal_score?.score || 0,
+        governance_route: structuredPost?.governance_route?.queue || 'general',
+        scan_id: signalData.scan_id || null,
         status: 'active'
       });
+
 
     if (supabaseError) {
       if (supabaseError.code === '23505') { // Unique violation
