@@ -36,8 +36,8 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
     const guardrailsPath = path.join(rootDir, 'config', 'discovery', 'guardrails.json');
     let guardrails = {
         max_requests_per_cycle: 10,
-        max_pages_per_query: 3,
-        max_signals_pre_cap: 100,
+        max_pages_per_query: 1, // Credit Saving: Only 1 page
+        max_signals_pre_cap: 60,  // Reduced headroom to save credits
         min_rate_limit_remaining: 5,
         backoff_ms: 1000,
         max_cycle_duration_ms: 60000
@@ -99,8 +99,9 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         }
 
         if (hashtags && hashtags.length > 0 && combinedItems.length < guardrails.max_signals_pre_cap) {
+            const activeHashtags = hashtags.slice(0, 3); // Credit Saving: Only first 3 tags
             const hashtagInput = {
-                hashtags: hashtags,
+                hashtags: activeHashtags,
                 resultsPerPage: 50,
                 page: page,
                 shouldScrapeComments: true
