@@ -47,11 +47,11 @@ export const RespondWorkspace: React.FC<Props> = ({
 
         const payload = createExecutionPayload(
             signal.signal_id,
-            s.source?.platform.toLowerCase() || 'tiktok',
+            s?.source?.platform?.toLowerCase() || 'tiktok',
             'comment_reply',
-            s.source?.source_url || '',
+            s?.source?.source_url || '',
             draft,
-            s.source?.author_id
+            s?.source?.author_id
         );
 
         const validation = validateExecutionPayload(payload);
