@@ -9,8 +9,9 @@ interface ClassificationProps {
 }
 
 export const SignalClassificationBlock: React.FC<{ classification: ClassificationProps }> = ({ classification }) => {
-    const mappedLabel = classification.mapCategoryLabel(classification.primary_category);
-    const hasMapping = mappedLabel.toUpperCase() !== classification.primary_category.toUpperCase();
+    const primaryCat = classification?.primary_category || 'UNCLASSIFIED';
+    const mappedLabel = classification?.mapCategoryLabel ? classification.mapCategoryLabel(primaryCat) : primaryCat;
+    const hasMapping = mappedLabel.toUpperCase() !== primaryCat.toUpperCase();
 
     return (
         <div className="space-y-4">
@@ -20,16 +21,17 @@ export const SignalClassificationBlock: React.FC<{ classification: Classificatio
                     <div className="flex items-baseline gap-2">
                         <span className="text-lg font-bold text-white uppercase tracking-tighter">{mappedLabel}</span>
                         {hasMapping && (
-                            <span className="text-[9px] text-slate-600 font-mono">({classification.primary_category})</span>
+                            <span className="text-[9px] text-slate-600 font-mono">({primaryCat})</span>
                         )}
                     </div>
                 </div>
                 
                 <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-700/30">
                     <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Signal Type</span>
-                    <span className="text-sm font-semibold text-slate-200 uppercase">{classification.signal_type.replace(/_/g, ' ')}</span>
+                    <span className="text-sm font-semibold text-slate-200 uppercase">{(classification?.signal_type || 'unclassified').replace(/_/g, ' ')}</span>
                 </div>
             </div>
+
 
             {classification.context_tags && classification.context_tags.length > 0 && (
                 <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-700/30">

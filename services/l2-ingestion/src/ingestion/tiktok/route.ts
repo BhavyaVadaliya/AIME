@@ -49,9 +49,23 @@ export async function routeTikTokHarvest() {
                         policy_mode: "governance-lite"
                     });
                     console.log(`[RTCE] Decision for ${item.signal_id}: ${rtceRes.data.route}`);
+
+                    // SUBMIT TO CORE API FOR PERSISTENCE (S12-P0 Bridge)
+                    const coreRes = await axios.post(`${CORE_API_URL}/admin/signals`, {
+                        signal_id: item.signal_id,
+                        correlation_id: item.correlation_id,
+                        structured_post: {
+                            ...bundle,
+                            governance_route: { queue: rtceRes.data.route },
+                            signal_score: { score: 10 } // Default for S12
+                        }
+                    });
+                    console.log(`[Core] Persistence for ${item.signal_id}: ${coreRes.status}`);
+
                 } catch (rtceErr: any) {
-                    console.error(`RTCE decisioning failed for ${item.signal_id}: ${rtceErr.message}`);
+                    console.error(`Downstream processing failed for ${item.signal_id}: ${rtceErr.message}`);
                 }
+
 
             } catch (err: any) {
                 console.log(JSON.stringify({
