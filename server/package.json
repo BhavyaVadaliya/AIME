@@ -11,6 +11,7 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.3",
     "@types/mongoose": "^5.11.96",
     "@types/morgan": "^1.9.10",
     "axios": "^1.13.2",
