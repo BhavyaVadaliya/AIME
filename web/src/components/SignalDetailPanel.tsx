@@ -60,7 +60,7 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
     if (!signal) return null;
 
     const s = signal.structured_post;
-    const engagementContext = getEngagementContext(s?.classification.primary_category);
+    const engagementContext = getEngagementContext(s?.classification?.primary_category);
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -116,9 +116,9 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                             </div>
                             <SignalClassificationBlock 
                                 classification={{
-                                    primary_category: s?.classification.primary_category || 'UNCLASSIFIED',
-                                    signal_type: s?.classification.signal_type || 'unclassified',
-                                    context_tags: s?.classification.context_tags,
+                                    primary_category: s?.classification?.primary_category || 'UNCLASSIFIED',
+                                    signal_type: s?.classification?.signal_type || 'unclassified',
+                                    context_tags: s?.classification?.context_tags,
                                     mapCategoryLabel
                                 }} 
                             />
@@ -160,7 +160,7 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                                 <h3 className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Governance Queue</h3>
                             </div>
                             <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-[10px] font-bold uppercase">
-                                {s?.governance_route.queue.replace(/_/g, ' ')}
+                                {s?.governance_route?.queue?.replace(/_/g, ' ') || 'GENERAL QUEUE'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">

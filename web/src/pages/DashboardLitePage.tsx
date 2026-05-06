@@ -414,7 +414,7 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                     <div className="flex items-center gap-1.5 bg-slate-900/50 px-3 py-1.5 rounded-xl border border-slate-700/50">
                         <span className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Score</span>
                         <span className={`text-sm font-mono font-black ${s?.priority_tier === 'HIGH' ? 'text-cyan-400' : 'text-slate-400'}`}>
-                            {s?.signal_score.score}
+                            {s?.signal_score?.score || 0}
                         </span>
                     </div>
                     <div className="text-[9px] text-slate-600 font-bold uppercase tracking-widest text-right mt-1">
