@@ -3,58 +3,106 @@ import axios from "axios";
 import Signal from "../models/Signal.js";
 import fs from "fs";
 import path from "path";
+import { supabase } from "../lib/supabase.js";
 
 const router = Router();
 
 /**
- * GET /admin/governance/signals (S10-T15 Correction)
- * Read-only re-sourcing from ingestion logs.
- * Zero impact on ingestion runtime.
+ * HELPER: Validation & Persistence Logic
+ * Adheres to T03.x and S12-P0 guards.
+ */
+async function saveValidSignal(signal: any) {
+    const s = signal.structured_post?.data || signal.structured_post;
+    if (!s) return;
+
+    const sourceUrl = s.source?.source_url || "";
+    const username = s.source?.username || "";
+
+    // 1. Source Validity Guards (S12-P0)
+    const isInvalid = !sourceUrl || 
+                      !sourceUrl.startsWith('http') ||
+                      username.toLowerCase() === 'unknown' ||
+                      username.toLowerCase().includes('synthetic') ||
+                      sourceUrl.toLowerCase().includes('@unknown') ||
+                      sourceUrl.toLowerCase().includes('synthetic_user');
+
+    if (isInvalid) {
+        console.log(JSON.stringify({
+            event: "signal_persistence_rejected_invalid_source",
+            signal_id: signal.signal_id,
+            reason: "invalid_or_synthetic_source",
+            status: "rejected"
+        }));
+        return;
+    }
+
+    // 2. Exact Deduplication & Persistence (S12-P0)
+    const { error } = await supabase
+        .from('signals')
+        .insert({
+            signal_id: signal.signal_id,
+            source_url: sourceUrl,
+            platform: s.source?.platform || 'unknown',
+            username: username,
+            author_id: s.source?.author_id,
+            raw_text: s.raw_text,
+            structured_post: s,
+            priority_tier: s.priority_tier,
+            signal_score: s.classification?.signal_score,
+            governance_route: s.classification?.primary_category,
+            status: 'active'
+        });
+
+    if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+            console.log(JSON.stringify({
+                event: "signal_persistence_skipped_duplicate",
+                source_url: sourceUrl,
+                reason: "duplicate_source_url",
+                status: "skipped"
+            }));
+        } else {
+            console.error('[Supabase] Insert error:', error.message);
+        }
+    } else {
+        console.log(JSON.stringify({
+            event: "signal_persisted",
+            signal_id: signal.signal_id,
+            source_url: sourceUrl,
+            status: "ok"
+        }));
+    }
+}
+
+/**
+ * GET /admin/governance/signals
+ * Now reads from Supabase for persistence.
  */
 router.get("/governance/signals", async (req: Request, res: Response) => {
   try {
-    const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
-    console.log(`[Admin] Reading logs from: ${logPath}`); // Audit log
-    if (!fs.existsSync(logPath)) {
-      console.warn(`[Admin] Log file not found at: ${logPath}`);
-      return res.json([]);
-    }
+    const { data, error } = await supabase
+        .from('signals')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-    const content = fs.readFileSync(logPath, "utf8");
-    const lines = content.split("\n").filter(l => l.trim().length > 0);
-    console.log(`[Admin] Total lines in log: ${lines.length}`);
-    
-    // Parse logs and extract lifecycle reports
-    const signals: any[] = [];
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line.trim());
-        if (entry.event === "signal_lifecycle_report") {
-          // Backward compatibility for simulated signals vs real LifecycleReports
-          let structured_post = entry.structured_post?.data || entry.structured_post;
-          if (!structured_post && entry.lifecycle?.structured_post) {
-            structured_post = entry.lifecycle.structured_post.data || entry.lifecycle.structured_post;
-          }
+    if (error) throw error;
 
-          signals.unshift({
-              signal_id: entry.signal_id,
-              correlation_id: entry.correlation_id,
-              timestamp: entry.timestamp,
-              structured_post
-          });
-        }
-      } catch (e) { 
-          // skip
-      }
-    }
-    console.log(`[Admin] Found ${signals.length} lifecycle reports`);
+    // Map back to the expected frontend format
+    const signals = data.map(row => ({
+        signal_id: row.signal_id,
+        correlation_id: row.signal_id, // Fallback
+        timestamp: row.created_at,
+        structured_post: row.structured_post
+    }));
 
-    return res.json(signals.slice(0, 50));
+    return res.json(signals);
   } catch (error) {
     console.error("Governance signals read error:", error);
-    return res.status(500).json({ error: "Failed to read governance logs" });
+    return res.status(500).json({ error: "Failed to read signals from persistence layer" });
   }
 });
+
 
 /**
  * POST /admin/governance/scan
@@ -182,65 +230,22 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
 });
 
 /**
- * GET /admin/logs
- * Returns the list of recent signals from MongoDB.
- */
-router.get("/logs", async (req: Request, res: Response) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const pageSize = 50;
-    
-    const [items, total] = await Promise.all([
-      Signal.find().sort({ ingested_at: -1 }).skip((page - 1) * pageSize).limit(pageSize),
-      Signal.countDocuments()
-    ]);
-
-    return res.json({
-      items,
-      pagination: { page, pageSize, total },
-    });
-  } catch (error) {
-    return res.status(500).json({ error: "Failed to fetch logs" });
-  }
-});
-
-/**
- * GET /admin/metrics
- * Returns real aggregation of signals in the last 24h.
- */
-router.get("/metrics", async (req: Request, res: Response) => {
-  try {
-    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const count = await Signal.countDocuments({ ingested_at: { $gte: last24h } });
-
-    return res.json({
-      signalsLast24h: count,
-      commentsGenerated: 0, // Placeholder
-      flaggedComments: 0,
-      personasActive: 0,
-    });
-  } catch (error) {
-    return res.status(500).json({ error: "Failed to calculate metrics" });
-  }
-});
-
-/**
  * POST /admin/signals
- * Receives a processed signal and stores it in MongoDB.
- * Called by the ingestion service.
+ * Receives a processed signal and stores it in Supabase + Log.
  */
 router.post("/signals", async (req: Request, res: Response) => {
   try {
     const signalData = req.body;
-    // Basic validation
     if (!signalData.signal_id) {
-      console.warn("[Admin] Received signal with missing ID:", signalData);
       return res.status(400).json({ error: "Missing signal_id" });
     }
 
-    console.log(`[Admin] RECEIVED SIGNAL: ${signalData.signal_id} (${signalData.correlation_id})`);
+    console.log(`[Admin] PROCESSING SIGNAL: ${signalData.signal_id}`);
 
-    // Persist to log file so Dashboard Lite can see it (S11 Distributed Fix)
+    // 1. Persistence to Supabase (S12-P0)
+    await saveValidSignal(signalData);
+
+    // 2. Persistence to log file (Fallback/Observability)
     const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
     const entry = {
         event: "signal_lifecycle_report",
@@ -249,12 +254,13 @@ router.post("/signals", async (req: Request, res: Response) => {
     };
     fs.appendFileSync(logPath, JSON.stringify(entry) + "\n");
 
-    return res.status(201).json({ success: true, message: "Signal logged to file" });
+    return res.status(201).json({ success: true, message: "Signal processed and persisted" });
   } catch (error) {
     console.error("Signal ingest error:", error);
     return res.status(500).json({ error: "Failed to store signal" });
   }
 });
+
 
 /**
  * GET /admin/persona-usage
