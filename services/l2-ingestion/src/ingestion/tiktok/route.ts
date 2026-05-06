@@ -39,7 +39,7 @@ export async function routeTikTokHarvest() {
                 }));
 
                 // Phase 2: RTCE Decisioning (S11-T05 Integration)
-                let rtceData = null;
+
                 try {
                     const rtceRes = await axios.post(RTCE_URL, {
                         correlation_id: item.correlation_id,
@@ -48,32 +48,9 @@ export async function routeTikTokHarvest() {
                         l2_bundle: bundle,
                         policy_mode: "governance-lite"
                     });
-                    rtceData = rtceRes.data;
                     console.log(`[RTCE] Decision for ${item.signal_id}: ${rtceRes.data.route}`);
                 } catch (rtceErr: any) {
                     console.error(`RTCE decisioning failed for ${item.signal_id}: ${rtceErr.message}`);
-                }
-
-                // Phase 3: Push to Core API for Persistence and Dashboard (S12 FIX)
-                const reportUrl = `${CORE_API_URL}/admin/signals`;
-                try {
-                    console.log(`[L2] Reporting signal to Core: ${reportUrl}`);
-                    await axios.post(reportUrl, {
-                        signal_id: item.signal_id,
-                        correlation_id: item.correlation_id,
-                        raw_text: item.raw_text,
-                        structured_post: {
-                            ...bundle,
-                            data: {
-                                ...bundle,
-                                raw_text: item.raw_text,
-                                source: item.metadata
-                            }
-                        },
-                        rtce: rtceData
-                    });
-                } catch (reportErr: any) {
-                    console.error(`[L2] Failed to report signal to Core API: ${reportErr.message} at ${reportUrl}`);
                 }
 
             } catch (err: any) {

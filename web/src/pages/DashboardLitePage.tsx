@@ -46,7 +46,7 @@ export const DashboardLitePage: React.FC = () => {
     const fetchData = async () => {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 
-                          (window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : 'https://aime-0vwz.onrender.com/api');
+                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://aime-0vwz.onrender.com');
             const response = await fetch(`${apiUrl}/admin/governance/signals`);
 
 
@@ -74,7 +74,7 @@ export const DashboardLitePage: React.FC = () => {
         setScanStatus('Running');
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 
-                          (window.location.hostname === 'localhost' ? 'http://localhost:4000/api' : 'https://aime-0vwz.onrender.com/api');
+                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://aime-0vwz.onrender.com');
             const response = await fetch(`${apiUrl}/admin/governance/scan`, {
                 method: 'POST'
             });
@@ -130,9 +130,9 @@ export const DashboardLitePage: React.FC = () => {
     }, [signals]);
 
     const filteredSignals = processedSignals.filter(({ signal: s }) => {
-        const catMatch = filterCategory === 'All' || s.structured_post?.classification?.primary_category === filterCategory;
+        const catMatch = filterCategory === 'All' || s.structured_post?.classification.primary_category === filterCategory;
         const tierMatch = filterTier === 'All' || s.structured_post?.priority_tier === filterTier;
-        const queueMatch = filterQueue === 'All' || s.structured_post?.governance_route?.queue === filterQueue;
+        const queueMatch = filterQueue === 'All' || s.structured_post?.governance_route.queue === filterQueue;
         return catMatch && tierMatch && queueMatch;
     });
 
@@ -142,10 +142,10 @@ export const DashboardLitePage: React.FC = () => {
         high: signals.filter(s => s.structured_post?.priority_tier === 'HIGH').length,
         med: signals.filter(s => s.structured_post?.priority_tier === 'MEDIUM').length,
         low: signals.filter(s => s.structured_post?.priority_tier === 'LOW').length,
-        highRiskQueue: signals.filter(s => s.structured_post?.governance_route?.queue === 'higher_risk').length,
+        highRiskQueue: signals.filter(s => s.structured_post?.governance_route.queue === 'higher_risk').length,
     };
 
-    const categories = ['All', ...new Set(signals.map(s => s.structured_post?.classification?.primary_category).filter(Boolean)) as Set<string>];
+    const categories = ['All', ...new Set(signals.map(s => s.structured_post?.classification.primary_category).filter(Boolean)) as Set<string>];
 
     const mapCategoryLabel = (cat: string) => cat === 'UNCLASSIFIED' ? 'General' : cat;
 
@@ -362,8 +362,8 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
 
                         <span className="text-slate-500 font-mono text-[10px]" title="Signal ID">{signal.signal_id}</span>
                         <div className="h-1 w-1 rounded-full bg-slate-700" />
-                        <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider" title={`Original classification: ${s?.classification?.primary_category}`}>
-                            {mapCategoryLabel(s?.classification?.primary_category || 'UNCLASSIFIED')}
+                        <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider" title={`Original classification: ${s?.classification.primary_category}`}>
+                            {mapCategoryLabel(s?.classification.primary_category || 'UNCLASSIFIED')}
                         </span>
                     </div>
 
@@ -417,7 +417,7 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                         </span>
                     </div>
                     <div className="text-[9px] text-slate-600 font-bold uppercase tracking-widest text-right mt-1">
-                        Queue: {s?.governance_route?.queue?.replace('_', ' ') || 'standard'}
+                        Queue: {s?.governance_route.queue.replace('_', ' ')}
                     </div>
                 </div>
             </div>

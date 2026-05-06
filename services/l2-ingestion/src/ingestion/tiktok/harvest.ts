@@ -36,11 +36,11 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
     const guardrailsPath = path.join(rootDir, 'config', 'discovery', 'guardrails.json');
     let guardrails = {
         max_requests_per_cycle: 10,
-        max_pages_per_query: 1, // Credit Saving: Only 1 page
-        max_signals_pre_cap: 60,  // Reduced headroom to save credits
+        max_pages_per_query: 3,
+        max_signals_pre_cap: 75,
         min_rate_limit_remaining: 5,
         backoff_ms: 1000,
-        max_cycle_duration_ms: 60000
+        max_cycle_duration_ms: 30000
     };
     if (fs.existsSync(guardrailsPath)) {
         guardrails = JSON.parse(fs.readFileSync(guardrailsPath, 'utf8'));
@@ -83,7 +83,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         if (page === 1 && accounts && accounts.length > 0) {
             const profileInput = {
                 profiles: accounts.map(acc => acc.startsWith('@') ? acc : `@${acc.split('@').pop()}`),
-                resultsPerPage: 50,
+                resultsPerPage: 25,
                 shouldScrapeComments: true
             };
             try {
@@ -99,10 +99,9 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         }
 
         if (hashtags && hashtags.length > 0 && combinedItems.length < guardrails.max_signals_pre_cap) {
-            const activeHashtags = hashtags.slice(0, 3); // Credit Saving: Only first 3 tags
             const hashtagInput = {
-                hashtags: activeHashtags,
-                resultsPerPage: 50,
+                hashtags: hashtags,
+                resultsPerPage: 25,
                 page: page,
                 shouldScrapeComments: true
             };
@@ -149,7 +148,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         event: "discovery_guardrail_summary",
         pages_fetched: pages.length,
         signals_pre_cap: combinedItems.length,
-        signals_post_cap: 50,
+        signals_post_cap: 25,
         duration_ms: Date.now() - cycleStartTime,
         status: "ok"
     }));
