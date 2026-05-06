@@ -55,8 +55,8 @@ export async function routeTikTokHarvest() {
                 }
 
                 // Phase 3: Push to Core API for Persistence and Dashboard (S12 FIX)
+                const reportUrl = `${CORE_API_URL}/admin/signals`;
                 try {
-                    const reportUrl = `${CORE_API_URL}/admin/signals`;
                     console.log(`[L2] Reporting signal to Core: ${reportUrl}`);
                     await axios.post(reportUrl, {
                         signal_id: item.signal_id,
