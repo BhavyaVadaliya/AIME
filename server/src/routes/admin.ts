@@ -76,10 +76,11 @@ async function saveValidSignal(signal: any) {
 
 /**
  * GET /admin/governance/signals
- * Now reads from Supabase for persistence.
+ * Reads from Supabase with fallback to local logs for maximum stability.
  */
 router.get("/governance/signals", async (req: Request, res: Response) => {
   try {
+    // Attempt Supabase read
     const { data, error } = await supabase
         .from('signals')
         .select('*')
@@ -88,18 +89,48 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    // Map back to the expected frontend format
-    const signals = data.map(row => ({
-        signal_id: row.signal_id,
-        correlation_id: row.signal_id, // Fallback
-        timestamp: row.created_at,
-        structured_post: row.structured_post
-    }));
+    if (data && data.length > 0) {
+        const signals = data.map(row => ({
+            signal_id: row.signal_id,
+            correlation_id: row.signal_id,
+            timestamp: row.created_at,
+            structured_post: row.structured_post
+        }));
+        return res.json(signals);
+    }
+    
+    // Fallback if Supabase is empty
+    throw new Error("Supabase empty, falling back to logs");
 
-    return res.json(signals);
   } catch (error) {
-    console.error("Governance signals read error:", error);
-    return res.status(500).json({ error: "Failed to read signals from persistence layer" });
+    console.warn("[Admin] Supabase read failed/empty, falling back to ingestion logs.");
+    
+    // Recovery path: Read from l2_logs.txt
+    try {
+        const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
+        if (fs.existsSync(logPath)) {
+            const content = fs.readFileSync(logPath, "utf8");
+            const lines = content.split("\n").filter(l => l.trim().length > 0);
+            
+            const signals = lines.map(line => {
+                try {
+                    const entry = JSON.parse(line);
+                    return {
+                        signal_id: entry.signal_id,
+                        correlation_id: entry.correlation_id || entry.signal_id,
+                        timestamp: entry.timestamp,
+                        structured_post: entry.structured_post?.data || entry.structured_post
+                    };
+                } catch(e) { return null; }
+            }).filter(Boolean).reverse().slice(0, 50);
+            
+            return res.json(signals);
+        }
+    } catch (logError) {
+        console.error("[Admin] Critical: Both Supabase and Log fallback failed.");
+    }
+    
+    return res.json([]); // Return empty rather than 500
   }
 });
 
@@ -242,8 +273,12 @@ router.post("/signals", async (req: Request, res: Response) => {
 
     console.log(`[Admin] PROCESSING SIGNAL: ${signalData.signal_id}`);
 
-    // 1. Persistence to Supabase (S12-P0)
-    await saveValidSignal(signalData);
+    // 1. Persistence to Supabase (S12-P0) - NON-BLOCKING
+    try {
+        await saveValidSignal(signalData);
+    } catch (dbError) {
+        console.error("[Supabase] Persistence failed, but continuing to log file:", dbError);
+    }
 
     // 2. Persistence to log file (Fallback/Observability)
     const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
