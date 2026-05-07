@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, MessageSquare, Copy, ExternalLink, ShieldCheck, Target, Type, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import { createExecutionPayload, validateExecutionPayload, stageExecutionPayload } from '../utils/executionEngine';
 import { ExecutionValidationResult } from '../types/execution';
+import { startExecutionSession, ExtensionResponse } from '../utils/extensionBridge';
+import { ExecutionStatusBanner } from './ExecutionStatusBanner';
+
 
 interface Props {
     isOpen: boolean;
@@ -24,13 +27,21 @@ export const RespondWorkspace: React.FC<Props> = ({
     const [copyStatus, setCopyStatus] = useState('Copy Response');
     const [executionReady, setExecutionReady] = useState<ExecutionValidationResult | null>(null);
     const [isStaged, setIsStaged] = useState(false);
+    const [extensionStatus, setExtensionStatus] = useState<string>('');
+    const [extensionSessionId, setExtensionSessionId] = useState<string>('');
+    const [extensionReason, setExtensionReason] = useState<string>('');
+
 
     // Sync draft with suggested reply when signal changes or workspace opens
     useEffect(() => {
         setDraft(suggestedReply);
         setExecutionReady(null);
         setIsStaged(false);
+        setExtensionStatus('');
+        setExtensionSessionId('');
+        setExtensionReason('');
     }, [suggestedReply, isOpen]);
+
 
     if (!isOpen || !signal) return null;
 
@@ -42,7 +53,7 @@ export const RespondWorkspace: React.FC<Props> = ({
         setTimeout(() => setCopyStatus('Copy Response'), 2000);
     };
 
-    const handlePrepareExecution = () => {
+    const handlePrepareExecution = async () => {
         if (!s) return;
 
         const payload = createExecutionPayload(
@@ -60,8 +71,15 @@ export const RespondWorkspace: React.FC<Props> = ({
         if (validation.ok) {
             stageExecutionPayload(payload);
             setIsStaged(true);
+            
+            // S12-T02 Extension Handoff
+            const extResponse: ExtensionResponse = await startExecutionSession(payload);
+            setExtensionStatus(extResponse.status);
+            if (extResponse.session_id) setExtensionSessionId(extResponse.session_id);
+            if (extResponse.reason) setExtensionReason(extResponse.reason);
         }
     };
+
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
@@ -164,6 +182,12 @@ export const RespondWorkspace: React.FC<Props> = ({
                                         </div>
                                     </div>
                                 )}
+
+                                <ExecutionStatusBanner 
+                                    status={extensionStatus} 
+                                    sessionId={extensionSessionId} 
+                                    reason={extensionReason} 
+                                />
                             </div>
                         </section>
 
@@ -199,14 +223,15 @@ export const RespondWorkspace: React.FC<Props> = ({
                             <button
                                 onClick={handlePrepareExecution}
                                 className={`flex-1 flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg ${
-                                    isStaged 
+                                    extensionStatus === 'tab_opened'
                                     ? 'bg-emerald-600 text-white shadow-emerald-500/20' 
                                     : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
                                 }`}
                             >
                                 <Zap className="w-5 h-5" />
-                                {isStaged ? 'Payload Staged' : 'Prepare Execution'}
+                                {extensionStatus === 'tab_opened' ? 'Session Active' : 'Start Execution Session'}
                             </button>
+
                             <button
                                 onClick={handleCopy}
                                 className={`flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 px-8 rounded-2xl transition-all border border-slate-700 active:scale-[0.98] ${

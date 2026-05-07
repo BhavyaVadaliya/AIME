@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "AIME Execution Bridge",
+  "version": "0.1.0",
+  "description": "Sprint 12 Session Layer - Secure payload handoff for AIME.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:5173/*",
+      "https://aime-pink.vercel.app/*"
+    ]
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
