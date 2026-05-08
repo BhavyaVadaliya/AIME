@@ -30,7 +30,20 @@ function validatePayload(payload) {
     return { ok: true };
 }
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'GET_TAB_INFO') {
+        sendResponse({ tabId: sender.tab.id });
+        return;
+    }
+
+    if (message.type === 'LOG_EVENT') {
+        logEvent(message.event, message.data);
+        return;
+    }
+});
+
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+
     console.log('[AIME] Message received from dashboard:', message);
 
     if (message.type === 'START_EXECUTION_SESSION') {
