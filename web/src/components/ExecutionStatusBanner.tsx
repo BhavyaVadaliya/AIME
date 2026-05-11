@@ -39,7 +39,26 @@ export const ExecutionStatusBanner: React.FC<Props> = ({ status, sessionId, reas
                     title: 'Payload Expired',
                     desc: 'Preparation took too long. Please re-stage.'
                 };
+            case 'injection_succeeded':
+                return {
+                    icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
+                    bg: 'bg-emerald-500/10',
+                    border: 'border-emerald-500/20',
+                    text: 'text-emerald-400',
+                    title: 'Draft Injected',
+                    desc: 'Draft inserted. Please review on TikTok before manually posting.'
+                };
+            case 'injection_failed':
+                return {
+                    icon: <AlertCircle className="w-4 h-4 text-red-400" />,
+                    bg: 'bg-red-500/10',
+                    border: 'border-red-500/20',
+                    text: 'text-red-400',
+                    title: 'Injection Failed',
+                    desc: reason || 'Draft insertion failed. Use manual copy/paste.'
+                };
             case 'extension_unavailable':
+
                 return {
                     icon: <Zap className="w-4 h-4 text-slate-400" />,
                     bg: 'bg-slate-500/10',

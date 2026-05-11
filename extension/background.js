@@ -38,9 +38,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.type === 'LOG_EVENT') {
         logEvent(message.event, message.data);
+        // If it's an injection update, update the session status in storage
+        if (message.event === 'execution_injection_succeeded' || message.event === 'execution_injection_failed') {
+            const status = message.event === 'execution_injection_succeeded' ? 'injection_succeeded' : 'injection_failed';
+            chrome.storage.local.get(null, (items) => {
+                const sessionId = Object.keys(items).find(key => items[key]?.signal_id === message.data.signal_id);
+                if (sessionId) {
+                    const session = items[sessionId];
+                    session.status = status;
+                    if (message.data.reason) session.reason = message.data.reason;
+                    chrome.storage.local.set({ [sessionId]: session });
+                }
+            });
+        }
         return;
     }
+
+    if (message.type === 'GET_SESSION_STATUS') {
+        chrome.storage.local.get(message.session_id, (result) => {
+            sendResponse(result[message.session_id]);
+        });
+        return true;
+    }
 });
+
 
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
 

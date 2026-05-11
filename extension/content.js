@@ -7,12 +7,14 @@ const TIKTOK_SELECTORS = {
 };
 
 async function injectText(input, text) {
+    if (!text || text.trim().length === 0) return { ok: false, stage: 'inject', reason: 'empty_reply_text' };
+    if (text.length > 1000) return { ok: false, stage: 'inject', reason: 'text_too_long' };
+
     try {
         input.focus();
-        
-        // TikTok uses a contenteditable that listens for input events
-        // We use document.execCommand for better compatibility with rich editors
+        // S12-T05: Strict use of insertText command only. No Enter/Submit simulation.
         document.execCommand('insertText', false, text);
+
         
         // Dispatch events to ensure TikTok's React state updates
         input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -43,16 +45,17 @@ async function startInjectionLoop() {
     
     const session = sessions.find(s => s.tab_id === myTabId);
     if (!session) {
-        console.log('[AIME] This tab is not bound to an execution session.');
+        console.warn('[AIME] This tab is not bound to an execution session. Safety block active.');
         return;
     }
 
-    // 2. Target Validation
+    // 2. Target Validation (Hardened)
     const payload = session.payload;
     const currentUrl = window.location.href;
     
     const extractId = (url) => {
-        const match = url.match(/\/video\/(\d+)/);
+        if (!url) return null;
+        const match = url.match(/\/video\/(\d+)/) || url.match(/\/v\/(\d+)/);
         return match ? match[1] : null;
     };
 
@@ -60,9 +63,20 @@ async function startInjectionLoop() {
     const targetId = payload.source_post_id || extractId(payload.source_url);
 
     if (currentId !== targetId) {
-        console.warn('[AIME] Target mismatch. Expected:', targetId, 'Found:', currentId);
+        handleFailure(session, 'wrong_post');
         return;
     }
+
+    if (new Date(payload.expires_at) < new Date()) {
+        handleFailure(session, 'payload_expired');
+        return;
+    }
+
+    if (!payload.reply_text || payload.reply_text.trim().length === 0) {
+        handleFailure(session, 'empty_reply_text');
+        return;
+    }
+
 
     // 3. Page Readiness & Selector Search (Bounded Retry)
     let attempts = 0;
@@ -105,12 +119,19 @@ function handleFailure(session, reason) {
     chrome.runtime.sendMessage({ 
         type: 'LOG_EVENT', 
         event: 'execution_injection_failed',
-        data: { signal_id: session.signal_id, tab_id: session.tab_id, stage: 'selector_search', reason }
+        data: { signal_id: session.signal_id, tab_id: session.tab_id, stage: 'target_validation', reason }
+    });
+
+    chrome.runtime.sendMessage({ 
+        type: 'LOG_EVENT', 
+        event: 'execution_fallback_shown',
+        data: { signal_id: session.signal_id, reason }
     });
     
     // Show fallback UI
     showFallbackOverlay(session.payload.reply_text, reason);
 }
+
 
 function showFallbackOverlay(replyText, reason) {
     const overlay = document.createElement('div');

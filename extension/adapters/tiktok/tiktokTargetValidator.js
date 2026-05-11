@@ -7,10 +7,15 @@ export function validateTikTokTarget(currentUrl, payload) {
     // 1. Platform check
     if (payload.platform !== 'tiktok') return { ok: false, reason: 'platform_mismatch' };
 
-    // 2. URL/PostID check
-    // Normalize URLs to compare IDs
+    // 2. Empty/Whitespace text check
+    if (!payload.reply_text || payload.reply_text.trim().length === 0) {
+        return { ok: false, reason: 'empty_reply_text' };
+    }
+
+    // 3. URL/PostID check
     const extractId = (url) => {
-        const match = url.match(/\/video\/(\d+)/);
+        if (!url) return null;
+        const match = url.match(/\/video\/(\d+)/) || url.match(/\/v\/(\d+)/);
         return match ? match[1] : null;
     };
 
@@ -18,13 +23,14 @@ export function validateTikTokTarget(currentUrl, payload) {
     const targetId = payload.source_post_id || extractId(payload.source_url);
 
     if (!currentId || currentId !== targetId) {
-        return { ok: false, reason: 'post_id_mismatch' };
+        return { ok: false, reason: 'wrong_post' };
     }
 
-    // 3. Expiry check
+    // 4. Expiry check
     if (new Date(payload.expires_at) < new Date()) {
         return { ok: false, reason: 'payload_expired' };
     }
 
     return { ok: true };
 }
+

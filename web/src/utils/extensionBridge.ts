@@ -37,3 +37,23 @@ export async function startExecutionSession(payload: any): Promise<ExtensionResp
         return { status: 'extension_unavailable' };
     }
 }
+
+export async function getSessionStatus(sessionId: string): Promise<any> {
+    if (!window.chrome || !window.chrome.runtime) {
+        return { status: 'extension_unavailable' };
+    }
+
+    return new Promise((resolve) => {
+        chrome.runtime.sendMessage(EXTENSION_ID, {
+            type: 'GET_SESSION_STATUS',
+            session_id: sessionId
+        }, (res) => {
+            if (chrome.runtime.lastError) {
+                resolve({ status: 'extension_unavailable' });
+            } else {
+                resolve(res);
+            }
+        });
+    });
+}
+

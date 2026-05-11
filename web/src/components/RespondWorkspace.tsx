@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, MessageSquare, Copy, ExternalLink, ShieldCheck, Target, Type, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import { createExecutionPayload, validateExecutionPayload, stageExecutionPayload } from '../utils/executionEngine';
 import { ExecutionValidationResult } from '../types/execution';
-import { startExecutionSession, ExtensionResponse } from '../utils/extensionBridge';
+import { startExecutionSession, getSessionStatus, ExtensionResponse } from '../utils/extensionBridge';
+
 import { ExecutionStatusBanner } from './ExecutionStatusBanner';
 
 
@@ -56,12 +57,13 @@ export const RespondWorkspace: React.FC<Props> = ({
     const handlePrepareExecution = async () => {
         if (!s) return;
 
+        // S12-T04: Always use the current 'draft' text, not the original suggestion
         const payload = createExecutionPayload(
             signal.signal_id,
             s?.source?.platform?.toLowerCase() || 'tiktok',
             'comment_reply',
             s?.source?.source_url || '',
-            draft,
+            draft, // Use current editor state
             s?.source?.author_id
         );
 
@@ -72,13 +74,35 @@ export const RespondWorkspace: React.FC<Props> = ({
             stageExecutionPayload(payload);
             setIsStaged(true);
             
-            // S12-T02 Extension Handoff
+            // S12-T02/T04 Extension Handoff
             const extResponse: ExtensionResponse = await startExecutionSession(payload);
             setExtensionStatus(extResponse.status);
-            if (extResponse.session_id) setExtensionSessionId(extResponse.session_id);
+            
+            if (extResponse.session_id) {
+                setExtensionSessionId(extResponse.session_id);
+                
+                // S12-T04: Poll for injection status
+                const pollInterval = setInterval(async () => {
+                    const statusUpdate = await getSessionStatus(extResponse.session_id!);
+                    if (statusUpdate && statusUpdate.status !== extResponse.status) {
+                        setExtensionStatus(statusUpdate.status);
+                        if (statusUpdate.reason) setExtensionReason(statusUpdate.reason);
+                        
+                        // Stop polling if we reach a terminal state
+                        if (['injection_succeeded', 'injection_failed', 'payload_expired'].includes(statusUpdate.status)) {
+                            clearInterval(pollInterval);
+                        }
+                    }
+                }, 1000);
+
+                // Cleanup on component unmount
+                setTimeout(() => clearInterval(pollInterval), 30000); // 30s timeout
+            }
+            
             if (extResponse.reason) setExtensionReason(extResponse.reason);
         }
     };
+
 
 
     return (
@@ -223,14 +247,15 @@ export const RespondWorkspace: React.FC<Props> = ({
                             <button
                                 onClick={handlePrepareExecution}
                                 className={`flex-1 flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg ${
-                                    extensionStatus === 'tab_opened'
+                                    extensionStatus === 'injection_succeeded'
                                     ? 'bg-emerald-600 text-white shadow-emerald-500/20' 
                                     : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
                                 }`}
                             >
                                 <Zap className="w-5 h-5" />
-                                {extensionStatus === 'tab_opened' ? 'Session Active' : 'Start Execution Session'}
+                                {extensionStatus === 'injection_succeeded' ? 'Draft Ready' : 'Open Source + Insert Draft'}
                             </button>
+
 
                             <button
                                 onClick={handleCopy}
