@@ -37,7 +37,7 @@ export const ExecutionStatusBanner: React.FC<Props> = ({ status, sessionId, reas
                     border: 'border-amber-500/20',
                     text: 'text-amber-400',
                     title: 'Payload Expired',
-                    desc: 'Preparation took too long. Please re-stage.'
+                    desc: 'Session expired. Please re-stage or continue manually below.'
                 };
             case 'injection_succeeded':
                 return {
