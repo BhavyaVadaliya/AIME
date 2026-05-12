@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { X, MessageSquare, Copy, ExternalLink, ShieldCheck, Target, Type, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import { createExecutionPayload, validateExecutionPayload, stageExecutionPayload } from '../utils/executionEngine';
 import { ExecutionValidationResult } from '../types/execution';
-import { startExecutionSession, getSessionStatus, ExtensionResponse } from '../utils/extensionBridge';
-
+import { startExecutionSession, getSessionStatus, getActiveSessionIdentity, ExtensionResponse } from '../utils/extensionBridge';
 import { ExecutionStatusBanner } from './ExecutionStatusBanner';
+import { ActiveSessionIndicator } from './ActiveSessionIndicator';
+
 
 
 interface Props {
@@ -31,6 +32,9 @@ export const RespondWorkspace: React.FC<Props> = ({
     const [extensionStatus, setExtensionStatus] = useState<string>('');
     const [extensionSessionId, setExtensionSessionId] = useState<string>('');
     const [extensionReason, setExtensionReason] = useState<string>('');
+    const [accountStatus, setAccountStatus] = useState<'connected' | 'not_detected' | 'unavailable'>('unavailable');
+    const [accountUsername, setAccountUsername] = useState<string>('');
+
 
 
     // Sync draft with suggested reply when signal changes or workspace opens
@@ -41,7 +45,10 @@ export const RespondWorkspace: React.FC<Props> = ({
         setExtensionStatus('');
         setExtensionSessionId('');
         setExtensionReason('');
+        setAccountStatus('unavailable');
+        setAccountUsername('');
     }, [suggestedReply, isOpen]);
+
 
 
     if (!isOpen || !signal) return null;
@@ -84,7 +91,16 @@ export const RespondWorkspace: React.FC<Props> = ({
                 // S12-T04: Poll for injection status
                 const pollInterval = setInterval(async () => {
                     const statusUpdate = await getSessionStatus(extResponse.session_id!);
+                    
+                    // S12 UX: Also poll for active identity
+                    const identityUpdate = await getActiveSessionIdentity(extResponse.session_id!);
+                    if (identityUpdate) {
+                        setAccountStatus(identityUpdate.status);
+                        setAccountUsername(identityUpdate.username || '');
+                    }
+
                     if (statusUpdate && statusUpdate.status !== extResponse.status) {
+
                         setExtensionStatus(statusUpdate.status);
                         if (statusUpdate.reason) setExtensionReason(statusUpdate.reason);
                         
@@ -242,8 +258,14 @@ export const RespondWorkspace: React.FC<Props> = ({
                             />
                         </div>
 
+                        {/* Active Session Indicator */}
+                        <div className="flex justify-center mb-4">
+                            <ActiveSessionIndicator status={accountStatus} username={accountUsername} />
+                        </div>
+
                         {/* Actions */}
                         <div className="flex items-center gap-4 pt-2">
+
                             <button
                                 onClick={handlePrepareExecution}
                                 className={`flex-1 flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg ${

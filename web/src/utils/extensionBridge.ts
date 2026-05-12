@@ -57,3 +57,23 @@ export async function getSessionStatus(sessionId: string): Promise<any> {
     });
 }
 
+export async function getActiveSessionIdentity(sessionId: string): Promise<any> {
+    if (!window.chrome || !window.chrome.runtime) {
+        return { status: 'unavailable' };
+    }
+
+    return new Promise((resolve) => {
+        chrome.runtime.sendMessage(EXTENSION_ID, {
+            type: 'GET_ACTIVE_SESSION_IDENTITY',
+            session_id: sessionId
+        }, (res) => {
+            if (chrome.runtime.lastError) {
+                resolve({ status: 'unavailable' });
+            } else {
+                resolve(res);
+            }
+        });
+    });
+}
+
+

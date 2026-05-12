@@ -3,8 +3,26 @@
 
 const TIKTOK_SELECTORS = {
     PRIMARY_COMMENT_INPUT: '[data-e2e="comment-input"] [contenteditable="true"]',
-    FALLBACK_COMMENT_INPUT: '[contenteditable="true"][role="textbox"]'
+    FALLBACK_COMMENT_INPUT: '[contenteditable="true"][role="textbox"]',
+    PROFILE_LINK: '[data-e2e="nav-profile"], a[href*="/@"]'
 };
+
+function getActiveIdentity() {
+    try {
+        const profileEl = document.querySelector(TIKTOK_SELECTORS.PROFILE_LINK);
+        if (profileEl) {
+            const href = profileEl.getAttribute('href');
+            if (href && href.includes('/@')) {
+                const handle = href.split('/@')[1].split('?')[0];
+                return handle ? `@${handle}` : null;
+            }
+        }
+    } catch (e) {
+        console.error('[AIME] Identity detection error:', e);
+    }
+    return null;
+}
+
 
 async function injectText(input, text) {
     if (!text || text.trim().length === 0) return { ok: false, stage: 'inject', reason: 'empty_reply_text' };
@@ -162,3 +180,12 @@ function showFallbackOverlay(replyText, reason) {
 }
 
 startInjectionLoop();
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'GET_ACTIVE_IDENTITY') {
+        const identity = getActiveIdentity();
+        sendResponse({ identity });
+        return true;
+    }
+});
+

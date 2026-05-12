@@ -60,7 +60,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return true;
     }
+
+    if (message.type === 'GET_ACTIVE_SESSION_IDENTITY') {
+        chrome.storage.local.get(message.session_id, (result) => {
+            const session = result[message.session_id];
+            if (session && session.tab_id) {
+                chrome.tabs.sendMessage(session.tab_id, { type: 'GET_ACTIVE_IDENTITY' }, (res) => {
+                    if (chrome.runtime.lastError) {
+                        sendResponse({ status: 'unavailable' });
+                    } else {
+                        sendResponse({ status: res?.identity ? 'connected' : 'not_detected', username: res?.identity });
+                    }
+                });
+            } else {
+                sendResponse({ status: 'unavailable' });
+            }
+        });
+        return true;
+    }
 });
+
 
 
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
