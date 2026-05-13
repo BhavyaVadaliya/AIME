@@ -2,7 +2,7 @@ import React from 'react';
 import { UserCircle2, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
 
 interface Props {
-    status: 'connected' | 'not_detected' | 'unavailable';
+    status: 'connected' | 'not_detected' | 'unavailable' | 'no_tab' | 'script_not_attached';
     username?: string;
 }
 
@@ -19,11 +19,26 @@ export const ActiveSessionIndicator: React.FC<Props> = ({ status, username }) =>
             case 'not_detected':
                 return {
                     icon: <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />,
-                    text: 'TikTok session: Not detected',
+                    text: 'Account not detected',
                     color: 'text-amber-400',
                     bg: 'bg-amber-500/10'
                 };
+            case 'no_tab':
+                return {
+                    icon: <Shield className="w-3.5 h-3.5 text-slate-500" />,
+                    text: 'No TikTok tab',
+                    color: 'text-slate-500',
+                    bg: 'bg-slate-500/5'
+                };
+            case 'script_not_attached':
+                return {
+                    icon: <Shield className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />,
+                    text: 'Attaching adapter...',
+                    color: 'text-indigo-400',
+                    bg: 'bg-indigo-500/10'
+                };
             default:
+
                 return {
                     icon: <Shield className="w-3.5 h-3.5 text-slate-500" />,
                     text: 'TikTok session unavailable',

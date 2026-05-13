@@ -18,9 +18,28 @@ export const ExecutionStatusBanner: React.FC<Props> = ({ status, sessionId, reas
                     bg: 'bg-emerald-500/10',
                     border: 'border-emerald-500/20',
                     text: 'text-emerald-400',
-                    title: 'Execution Session Active',
-                    desc: 'Source tab opened and payload bound.'
+                    title: 'Source Opened',
+                    desc: 'TikTok tab detected. Attaching adapter...'
                 };
+            case 'script_not_attached':
+                return {
+                    icon: <Zap className="w-4 h-4 text-indigo-400 animate-pulse" />,
+                    bg: 'bg-indigo-500/10',
+                    border: 'border-indigo-500/20',
+                    text: 'text-indigo-400',
+                    title: 'Attaching Adapter',
+                    desc: 'Communicating with TikTok content script...'
+                };
+            case 'no_tab':
+                return {
+                    icon: <AlertCircle className="w-4 h-4 text-slate-400" />,
+                    bg: 'bg-slate-500/10',
+                    border: 'border-slate-500/20',
+                    text: 'text-slate-400',
+                    title: 'Awaiting Source',
+                    desc: 'Start session to open the TikTok post.'
+                };
+
             case 'payload_invalid':
                 return {
                     icon: <AlertCircle className="w-4 h-4 text-red-400" />,

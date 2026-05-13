@@ -1,4 +1,18 @@
-export function logEvent(event: string, data: any) {
+export type ExecutionEvent = 
+    | 'execution_payload_staged'
+    | 'execution_session_created'
+    | 'execution_tab_bound'
+    | 'content_script_attached'
+    | 'content_script_not_attached'
+    | 'tiktok_dom_ready'
+    | 'execution_injection_attempted'
+    | 'execution_injection_succeeded'
+    | 'execution_injection_failed'
+    | 'execution_fallback_shown'
+    | 'active_session_detected'
+    | 'active_session_not_detected';
+
+export function logEvent(event: ExecutionEvent, data: any) {
     const logEntry = {
         event,
         ...data,

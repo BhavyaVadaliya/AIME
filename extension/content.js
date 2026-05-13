@@ -112,9 +112,18 @@ async function startInjectionLoop() {
 
         if (input) {
             clearInterval(loop);
+            
+            // S12-T07: Log DOM Readiness
+            chrome.runtime.sendMessage({ 
+                type: 'LOG_EVENT', 
+                event: 'tiktok_dom_ready',
+                data: { signal_id: session.signal_id, tab_id: myTabId, status: 'ok' }
+            });
+
             console.log('[AIME] Input found. Attempting injection...');
             
             const result = await injectText(input, payload.reply_text);
+
             
             if (result.ok) {
                 chrome.runtime.sendMessage({ 
@@ -181,11 +190,32 @@ function showFallbackOverlay(replyText, reason) {
 
 startInjectionLoop();
 
+// S12-T07: Report script attachment immediately
+chrome.runtime.sendMessage({ 
+    type: 'LOG_EVENT', 
+    event: 'content_script_attached',
+    data: { platform: 'tiktok', status: 'ok' }
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'GET_ACTIVE_IDENTITY') {
         const identity = getActiveIdentity();
+        if (!identity) {
+            chrome.runtime.sendMessage({ 
+                type: 'LOG_EVENT', 
+                event: 'active_session_not_detected',
+                data: { platform: 'tiktok', reason: 'profile_element_missing', status: 'not_detected' }
+            });
+        } else {
+            chrome.runtime.sendMessage({ 
+                type: 'LOG_EVENT', 
+                event: 'active_session_detected',
+                data: { platform: 'tiktok', username: identity, status: 'connected' }
+            });
+        }
         sendResponse({ identity });
         return true;
     }
 });
+
 

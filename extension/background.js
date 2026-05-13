@@ -67,18 +67,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (session && session.tab_id) {
                 chrome.tabs.sendMessage(session.tab_id, { type: 'GET_ACTIVE_IDENTITY' }, (res) => {
                     if (chrome.runtime.lastError) {
-                        sendResponse({ status: 'unavailable' });
+                        // The tab exists, but the content script isn't responding yet
+                        sendResponse({ status: 'script_not_attached' });
                     } else {
                         sendResponse({ status: res?.identity ? 'connected' : 'not_detected', username: res?.identity });
                     }
                 });
             } else {
-                sendResponse({ status: 'unavailable' });
+                // No tab has been bound to this session yet
+                sendResponse({ status: 'no_tab' });
             }
         });
         return true;
     }
 });
+
 
 
 
@@ -100,43 +103,25 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             return;
         }
 
-        // 1. Create Session
-        const sessionId = `exec-${payload.signal_id}-${Date.now()}`;
-        const session = {
-            session_id: sessionId,
-            signal_id: payload.signal_id,
-            tab_id: null,
-            payload: payload,
-            status: 'staged',
-            created_at: new Date().toISOString(),
-            expires_at: payload.expires_at
-        };
-
-        // 2. Store Session
-        chrome.storage.local.set({ [sessionId]: session }, () => {
-            logEvent('execution_session_created', {
+        // 3. Open Source Tab
+        chrome.tabs.create({ url: payload.source_url }, (tab) => {
+            const sessionId = `exec-${payload.signal_id}-${Date.now()}`;
+            const session = {
+                session_id: sessionId,
                 signal_id: payload.signal_id,
-                platform: payload.platform,
-                action: payload.action,
-                status: 'ok'
-            });
+                tab_id: tab.id,
+                status: 'tab_opened',
+                payload: payload,
+                expires_at: payload.expires_at
+            };
 
-            // 3. Open Tab
-            chrome.tabs.create({ url: payload.source_url }, (tab) => {
-                // 4. Bind Tab
-                session.tab_id = tab.id;
-                session.status = 'tab_opened';
-                chrome.storage.local.set({ [sessionId]: session }, () => {
-                    logEvent('execution_tab_bound', {
-                        signal_id: payload.signal_id,
-                        tab_id: tab.id,
-                        source_url: payload.source_url,
-                        status: 'ok'
-                    });
-                    sendResponse({ status: 'tab_opened', session_id: sessionId, tab_id: tab.id });
-                });
+            chrome.storage.local.set({ [sessionId]: session }, () => {
+                logEvent('execution_session_created', { signal_id: payload.signal_id, session_id: sessionId });
+                logEvent('execution_tab_bound', { signal_id: payload.signal_id, tab_id: tab.id });
+                sendResponse({ status: 'tab_opened', session_id: sessionId });
             });
         });
+
 
         return true; // Keep channel open for async sendResponse
     }
