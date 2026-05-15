@@ -64,7 +64,7 @@ export const ExecutionStatusBanner: React.FC<Props> = ({ status, sessionId, reas
                     bg: 'bg-emerald-500/10',
                     border: 'border-emerald-500/20',
                     text: 'text-emerald-400',
-                    title: 'Draft Injected',
+                    title: 'Ready for Draft Injection',
                     desc: 'Draft inserted. Please review on TikTok before manually posting.'
                 };
             case 'injection_failed':
@@ -73,18 +73,26 @@ export const ExecutionStatusBanner: React.FC<Props> = ({ status, sessionId, reas
                     bg: 'bg-red-500/10',
                     border: 'border-red-500/20',
                     text: 'text-red-400',
-                    title: 'Injection Failed',
-                    desc: reason || 'Draft insertion failed. Use manual copy/paste.'
+                    title: 'Manual Fallback Mode',
+                    desc: 'AIME could not insert the draft. You may continue manually using the tools below.'
                 };
-            case 'extension_unavailable':
-
+            case 'no_tab':
                 return {
-                    icon: <Zap className="w-4 h-4 text-slate-400" />,
+                    icon: <Clock className="w-4 h-4 text-slate-400" />,
                     bg: 'bg-slate-500/10',
                     border: 'border-slate-500/20',
                     text: 'text-slate-400',
-                    title: 'Extension Unavailable',
-                    desc: 'Please ensure AIME Execution Bridge is installed.'
+                    title: 'Waiting for TikTok Session',
+                    desc: 'AIME is ready. Open the source post to begin injection.'
+                };
+            case 'extension_unavailable':
+                return {
+                    icon: <Zap className="w-4 h-4 text-amber-400" />,
+                    bg: 'bg-amber-500/10',
+                    border: 'border-amber-500/20',
+                    text: 'text-amber-400',
+                    title: 'Extension Not Detected',
+                    desc: 'Manual Fallback Mode active. To enable injection: 1. Enable Developer Mode in chrome://extensions 2. Load unpacked [aime-demo]/extension.'
                 };
             default:
                 return {

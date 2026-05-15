@@ -12,7 +12,7 @@ export const ActiveSessionIndicator: React.FC<Props> = ({ status, username }) =>
             case 'connected':
                 return {
                     icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />,
-                    text: `Connected as ${username}`,
+                    text: `Extension Connected: ${username}`,
                     color: 'text-emerald-400',
                     bg: 'bg-emerald-500/10'
                 };
@@ -26,10 +26,11 @@ export const ActiveSessionIndicator: React.FC<Props> = ({ status, username }) =>
             case 'no_tab':
                 return {
                     icon: <Shield className="w-3.5 h-3.5 text-slate-500" />,
-                    text: 'No TikTok tab',
+                    text: 'Waiting for TikTok Session',
                     color: 'text-slate-500',
                     bg: 'bg-slate-500/5'
                 };
+
             case 'script_not_attached':
                 return {
                     icon: <Shield className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />,

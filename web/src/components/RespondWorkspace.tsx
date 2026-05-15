@@ -231,11 +231,27 @@ export const RespondWorkspace: React.FC<Props> = ({
                             </div>
                         </section>
 
+                        {/* Onboarding Guidance */}
+                        {extensionStatus === 'extension_unavailable' && (
+                            <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 mt-4">
+                                <h4 className="text-[10px] font-black uppercase text-amber-500 mb-2">Bridge Setup Required</h4>
+                                <ol className="text-[9px] text-slate-400 space-y-1 list-decimal ml-4">
+                                    <li>Open chrome://extensions</li>
+                                    <li>Enable Developer Mode</li>
+                                    <li>Click "Load unpacked"</li>
+                                    <li>Select the AIME /extension directory</li>
+                                    <li>Ensure extension is enabled</li>
+                                    <li>Log into TikTok in this profile</li>
+                                </ol>
+                            </div>
+                        )}
+
                         <div className="bg-slate-800/20 p-5 rounded-2xl border border-slate-800 italic">
                             <p className="text-[10px] text-slate-500 leading-normal">
                                 Advisory: Response prepared in AIME remains local. Use the copy button to transfer to the platform. Execution prep is advisory only.
                             </p>
                         </div>
+
                     </div>
 
                     {/* Right: Response Editor */}
@@ -271,12 +287,20 @@ export const RespondWorkspace: React.FC<Props> = ({
                                 className={`flex-1 flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg ${
                                     extensionStatus === 'injection_succeeded'
                                     ? 'bg-emerald-600 text-white shadow-emerald-500/20' 
+                                    : extensionStatus === 'extension_unavailable'
+                                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
                                     : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
                                 }`}
+                                disabled={extensionStatus === 'extension_unavailable'}
                             >
                                 <Zap className="w-5 h-5" />
-                                {extensionStatus === 'injection_succeeded' ? 'Draft Ready' : 'Open Source + Insert Draft'}
+                                {extensionStatus === 'injection_succeeded' 
+                                    ? 'Draft Ready' 
+                                    : extensionStatus === 'extension_unavailable'
+                                    ? 'Extension Not Detected'
+                                    : 'Open Source + Insert Draft'}
                             </button>
+
 
 
                             <button
