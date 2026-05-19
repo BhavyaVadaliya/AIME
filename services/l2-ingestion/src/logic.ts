@@ -4,6 +4,8 @@ import { classifySignal } from './classification/signal_classifier';
 import { GovernanceRouter } from './governance/governance_router';
 import { StructuredPostBuilder } from './governance/structured_post_builder';
 import { LifecycleReporter } from './governance/governance_reporting';
+import { refineIntent } from './ingestion/tiktok/intent_refinement';
+
 
 const govRouter = new GovernanceRouter();
 const postBuilder = new StructuredPostBuilder();
@@ -66,7 +68,13 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         flags.push("policy_risk_high");
     }
 
-    const classification = classifySignal(rawText);
+    const intentResult = refineIntent(rawText, req.signal_id);
+    const classification: SignalClassification = {
+        ...classifySignal(rawText),
+        seller_promoter_tag: intentResult.seller_promoter_tag,
+        is_deprioritized: intentResult.is_deprioritized,
+        deprioritization_reason: intentResult.deprioritization_reason
+    };
     
     console.log(JSON.stringify({
         event: "signal_classified",
@@ -75,8 +83,11 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         correlation_id: req.correlation_id,
         primary_category: classification.primary_category,
         signal_type: classification.signal_type,
+        seller_promoter_tag: classification.seller_promoter_tag,
+        is_deprioritized: classification.is_deprioritized,
         status: "ok"
     }));
+
 
     const governance_route = govRouter.route(req.signal_id, req.correlation_id, classification);
 

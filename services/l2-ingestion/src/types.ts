@@ -14,7 +14,11 @@ export interface SignalClassification {
     primary_category: string;
     signal_type: string;
     context_tags: string[];
+    seller_promoter_tag?: 'seller_candidate' | 'promoter_candidate' | 'prospect_candidate' | 'neutral_candidate';
+    is_deprioritized?: boolean;
+    deprioritization_reason?: string;
 }
+
 
 export interface SignalSource {
     platform: string;

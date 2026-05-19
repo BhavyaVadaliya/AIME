@@ -383,6 +383,19 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                         <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider" title={`Original classification: ${s?.classification.primary_category}`}>
                             {mapCategoryLabel(s?.classification.primary_category || 'UNCLASSIFIED')}
                         </span>
+                        {s?.classification?.seller_promoter_tag && (
+                            <>
+                                <div className="h-1 w-1 rounded-full bg-slate-700" />
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight uppercase ${
+                                    s.classification.seller_promoter_tag === 'seller_candidate' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                    s.classification.seller_promoter_tag === 'promoter_candidate' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                    s.classification.seller_promoter_tag === 'prospect_candidate' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                    'bg-slate-800 text-slate-500 border border-slate-700'
+                                }`}>
+                                    {s.classification.seller_promoter_tag.replace('_', ' ')}
+                                </span>
+                            </>
+                        )}
                     </div>
 
                     <p className={`text-lg transition-colors capitalize mb-4 ${

@@ -79,7 +79,12 @@ export class SignalScorer {
             pattern_boost += this.config.pattern_boosts['engagement_monetization'] ?? 0;
         }
 
-        const score = category_weight + type_adjustment + pattern_boost;
+        let score = category_weight + type_adjustment + pattern_boost;
+        
+        // Sprint 13 - Seller/Promoter Deprioritization
+        if (classification.is_deprioritized) {
+            score = Math.max(1, score - 5);
+        }
 
         // Traceability Logging
         console.log(JSON.stringify({
@@ -90,6 +95,7 @@ export class SignalScorer {
             category_weight,
             type_adjustment,
             pattern_boost,
+            is_deprioritized: classification.is_deprioritized,
             status: "ok"
         }));
 
