@@ -6,7 +6,6 @@ import { StructuredPostBuilder } from './governance/structured_post_builder';
 import { LifecycleReporter } from './governance/governance_reporting';
 import { refineIntent } from './ingestion/tiktok/intent_refinement';
 
-
 const govRouter = new GovernanceRouter();
 const postBuilder = new StructuredPostBuilder();
 const reporter = new LifecycleReporter();
@@ -50,7 +49,7 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         const hasProfContext = profKeywords.some(keyword => text.includes(keyword));
         const hasEduContext = eduKeywords.some(keyword => text.includes(keyword));
         const hasNutritionContext = nutritionKeywords.some(keyword => text.includes(keyword));
- 
+  
         if (hasProfContext && hasEduContext) {
             topics.push(...mapping.topics);
             context_summary = "Professional nutrition education inquiry.";
@@ -68,14 +67,15 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         flags.push("policy_risk_high");
     }
 
-    const intentResult = refineIntent(rawText, req.signal_id);
-    const classification: SignalClassification = {
-        ...classifySignal(rawText),
-        seller_promoter_tag: intentResult.seller_promoter_tag,
-        is_deprioritized: intentResult.is_deprioritized,
-        deprioritization_reason: intentResult.deprioritization_reason
-    };
+    const classification = classifySignal(rawText);
     
+    // S13-T01 Deterministic Refinement Integration
+    const intent = refineIntent(rawText, req.signal_id);
+    if (intent.category === 'seller_candidate' || intent.category === 'promoter_candidate' || intent.category === 'prospect_candidate') {
+        (classification.context_tags as string[]).push(intent.category);
+    }
+
+
     console.log(JSON.stringify({
         event: "signal_classified",
         timestamp: new Date().toISOString(),
@@ -83,8 +83,6 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         correlation_id: req.correlation_id,
         primary_category: classification.primary_category,
         signal_type: classification.signal_type,
-        seller_promoter_tag: classification.seller_promoter_tag,
-        is_deprioritized: classification.is_deprioritized,
         status: "ok"
     }));
 

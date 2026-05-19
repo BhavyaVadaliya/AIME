@@ -80,10 +80,10 @@ export class SignalScorer {
         }
 
         let score = category_weight + type_adjustment + pattern_boost;
-        
-        // Sprint 13 - Seller/Promoter Deprioritization
-        if (classification.is_deprioritized) {
-            score = Math.max(1, score - 5);
+
+        // S13-T01 Contamination Qualification Weighting Reduction
+        if (tags.includes('seller_candidate') || tags.includes('promoter_candidate')) {
+            score = 1; // Drastically reduce qualification weighting
         }
 
         // Traceability Logging
@@ -95,9 +95,9 @@ export class SignalScorer {
             category_weight,
             type_adjustment,
             pattern_boost,
-            is_deprioritized: classification.is_deprioritized,
             status: "ok"
         }));
+
 
         return {
             score,

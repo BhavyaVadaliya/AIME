@@ -1,21 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type IntentCategory = 'priority_candidate' | 'neutral_candidate' | 'excluded_low_intent';
+export type IntentCategory = 
+  | 'priority_candidate' 
+  | 'neutral_candidate' 
+  | 'excluded_low_intent' 
+  | 'seller_candidate' 
+  | 'promoter_candidate' 
+  | 'prospect_candidate';
 
 export interface IntentRefinementResult {
   category: IntentCategory;
   matched_priority_pattern?: string;
   matched_exclusion_pattern?: string;
-  // Sprint 13 - Seller / Promoter Suppression
-  seller_promoter_tag?: 'seller_candidate' | 'promoter_candidate' | 'prospect_candidate' | 'neutral_candidate';
-  is_deprioritized?: boolean;
-  deprioritization_reason?: string;
 }
 
 /**
- * Deterministic Intent Refinement Helper.
- * Inspects raw text against configured phrase lists and applies precedence rules.
+ * Deterministic Intent Refinement Helper - S13-T01 Calibration.
+ * Inspects raw text against configured phrase lists, seller contamination rules, and prospect preservation safeguards.
  */
 export function refineIntent(text: string, signalId: string): IntentRefinementResult {
   const t = text.toLowerCase();
@@ -31,20 +33,7 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
   const professionPatterns: string[] = config.target_profession_phrase_patterns || [];
   const exclusionPatterns: string[] = config.excluded_phrase_patterns || [];
 
-  // Helper to check for pattern match
-  const findMatch = (patterns: string[]) => patterns.find(p => t.includes(p.toLowerCase()));
-
-  const matchedPriority = findMatch(priorityPatterns);
-  const matchedProfession = findMatch(professionPatterns);
-  const matchedExclusion = findMatch(exclusionPatterns);
-
-  // Default output categories
-  let category: IntentCategory = 'neutral_candidate';
-  let seller_promoter_tag: 'seller_candidate' | 'promoter_candidate' | 'prospect_candidate' | 'neutral_candidate' = 'neutral_candidate';
-  let is_deprioritized = false;
-  let deprioritization_reason = '';
-
-  // Category A — Seller / Funnel Indicators
+  // Deterministic S13-T01 Contamination Patterns
   const sellerPatterns = [
     "link in bio",
     "dm me",
@@ -60,89 +49,122 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
     "book a call"
   ];
 
-  // Category B — Certification Seller Signals
-  const promoterPatterns = [
+  const certificationSellerPatterns = [
     "become certified today",
     "start your coaching business",
-    "launch your nutrition business",
-    "course selling",
-    "credential funneling",
-    "outbound certification promotion",
-    "high-pressure educational sales"
+    "launch your nutrition business"
   ];
 
-  // Safeguards (CRITICAL)
-  const prospectSafeguards = [
+  // Deterministic S13-T01 Prospect Preservation Safeguards
+  const prospectPreservationPatterns = [
     "what certification should i take",
     "how do i become a dietitian",
     "i want a side income",
-    "i’m thinking of changing careers",
-    "i'm thinking of changing careers"
+    "thinking of changing careers",
+    "changing careers",
+    "change careers",
+    "side income",
+    "career transition",
+    "how to transition"
   ];
 
   const professionalKeywords = [
-    "nurse",
     "dietitian",
     "nutritionist",
+    "registered dietitian",
+    "rd",
+    "rdn",
+    "nurse",
+    "rn",
+    "clinician",
+    "healthcare professional",
+    "medical student",
     "dietetic intern",
-    "career change",
-    "career transition",
-    "clinical",
-    "side income",
-    "rd exam"
+    "nutrition student"
   ];
 
-  const isSafeguardMatch = prospectSafeguards.some(p => t.includes(p));
-  const hasProfessionalContext = professionalKeywords.some(p => t.includes(p));
-  const hasSellerPattern = sellerPatterns.some(p => t.includes(p));
-  const hasPromoterPattern = promoterPatterns.some(p => t.includes(p));
+  const helperKeywords = [
+    "become",
+    "certification",
+    "certified",
+    "study",
+    "course",
+    "training",
+    "career",
+    "transition",
+    "class"
+  ];
 
-  if (isSafeguardMatch) {
-    seller_promoter_tag = 'prospect_candidate';
-    console.log(JSON.stringify({
-      event: "prospect_signal_preserved",
-      signal_id: signalId,
-      reason: "prospect_safeguard_matched",
-      status: "ok"
-    }));
-  } else if (hasProfessionalContext && (hasSellerPattern || hasPromoterPattern)) {
-    seller_promoter_tag = 'prospect_candidate';
-    console.log(JSON.stringify({
-      event: "prospect_signal_preserved",
-      signal_id: signalId,
-      reason: "professional_transition_interest",
-      status: "ok"
-    }));
-  } else if (hasSellerPattern) {
-    seller_promoter_tag = 'seller_candidate';
-    is_deprioritized = true;
-    deprioritization_reason = "seller_contamination_pattern_matched";
-    console.log(JSON.stringify({
-      event: "seller_candidate_detected",
-      signal_id: signalId,
-      matched_pattern: sellerPatterns.find(p => t.includes(p)),
-      status: "ok"
-    }));
-  } else if (hasPromoterPattern) {
-    seller_promoter_tag = 'promoter_candidate';
-    is_deprioritized = true;
-    deprioritization_reason = "promoter_contamination_pattern_matched";
-    console.log(JSON.stringify({
-      event: "promoter_candidate_detected",
-      signal_id: signalId,
-      matched_pattern: promoterPatterns.find(p => t.includes(p)),
-      status: "ok"
-    }));
-  } else if (matchedPriority || matchedProfession) {
-    seller_promoter_tag = 'prospect_candidate';
-  } else {
-    seller_promoter_tag = 'neutral_candidate';
+  // Helper to check for pattern match
+  const findMatch = (patterns: string[]) => patterns.find(p => t.includes(p.toLowerCase()));
+
+  const matchedSeller = findMatch(sellerPatterns);
+  const matchedCertSeller = findMatch(certificationSellerPatterns);
+  const matchedPreservation = findMatch(prospectPreservationPatterns);
+
+  // Check if it satisfies Mixed-Signal Protection (BOTH professional/monetization curiosity AND seller/promoter patterns)
+  const hasSellerIndicator = !!matchedSeller || !!matchedCertSeller;
+  
+  // Subtract matched seller patterns from text to ensure professional keywords are independent
+  let textWithoutSeller = t;
+  if (matchedSeller) {
+    textWithoutSeller = textWithoutSeller.replace(matchedSeller.toLowerCase(), '');
+  }
+  if (matchedCertSeller) {
+    textWithoutSeller = textWithoutSeller.replace(matchedCertSeller.toLowerCase(), '');
   }
 
-  // Preserve the original refineIntent priority candidate logic
-  // 1. Priority Candidate (Direct)
+  const hasProfessionalCuriosity = professionalKeywords.some(kw => textWithoutSeller.includes(kw)) || 
+                                   helperKeywords.some(kw => textWithoutSeller.includes(kw));
+  const isMixedSignal = hasSellerIndicator && hasProfessionalCuriosity;
+
+  // 1. Prospect Preservation Safeguard & Mixed-Signal Protection (Highest Precedence)
+  if (matchedPreservation || isMixedSignal) {
+    const reason = matchedPreservation ? "professional_transition_interest" : "mixed_intent_preservation";
+    console.log(JSON.stringify({
+      event: "prospect_signal_preserved",
+      timestamp: new Date().toISOString(),
+      signal_id: signalId,
+      reason: reason,
+      status: "ok"
+    }));
+    return { 
+      category: 'prospect_candidate', 
+      matched_priority_pattern: matchedPreservation || "mixed_intent_curiosity" 
+    };
+  }
+
+
+  // 2. Pure Seller / Promoter Contamination Detection
+  if (matchedSeller) {
+    console.log(JSON.stringify({
+      event: "seller_candidate_detected",
+      timestamp: new Date().toISOString(),
+      signal_id: signalId,
+      matched_pattern: matchedSeller,
+      status: "ok"
+    }));
+    return { category: 'seller_candidate', matched_exclusion_pattern: matchedSeller };
+  }
+
+  if (matchedCertSeller) {
+    console.log(JSON.stringify({
+      event: "seller_candidate_detected",
+      timestamp: new Date().toISOString(),
+      signal_id: signalId,
+      matched_pattern: matchedCertSeller,
+      status: "ok"
+    }));
+    return { category: 'promoter_candidate', matched_exclusion_pattern: matchedCertSeller };
+  }
+
+  // 3. Fallback to existing GIME Intent Refinement Flow
+  const matchedPriority = findMatch(priorityPatterns);
+  const matchedProfession = findMatch(professionPatterns);
+  const matchedExclusion = findMatch(exclusionPatterns);
+
+  // Priority Candidate (Direct)
   if (matchedPriority) {
-    category = 'priority_candidate';
     console.log(JSON.stringify({
       event: "signal_prioritized_intent",
       timestamp: new Date().toISOString(),
@@ -151,11 +173,11 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
       matched_pattern: matchedPriority,
       status: "ok"
     }));
+    return { category: 'priority_candidate', matched_priority_pattern: matchedPriority };
   }
 
-  // 2. Mixed-Signal Safeguard (Priority/Profession + Exclusion)
-  else if (matchedExclusion && matchedProfession) {
-    category = 'priority_candidate';
+  // Mixed-Signal Safeguard (Priority/Profession + Exclusion)
+  if (matchedExclusion && matchedProfession) {
     console.log(JSON.stringify({
       event: "signal_retained_mixed_intent",
       timestamp: new Date().toISOString(),
@@ -164,11 +186,11 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
       priority_pattern: matchedProfession,
       status: "ok"
     }));
+    return { category: 'priority_candidate', matched_exclusion_pattern: matchedExclusion, matched_priority_pattern: matchedProfession };
   }
 
-  // 3. Excluded Low-Intent
-  else if (matchedExclusion && !matchedPriority && !matchedProfession) {
-    category = 'excluded_low_intent';
+  // Excluded Low-Intent
+  if (matchedExclusion && !matchedPriority && !matchedProfession) {
     console.log(JSON.stringify({
       event: "signal_excluded_low_intent",
       timestamp: new Date().toISOString(),
@@ -177,19 +199,10 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
       matched_pattern: matchedExclusion,
       status: "ok"
     }));
+    return { category: 'excluded_low_intent', matched_exclusion_pattern: matchedExclusion };
   }
 
-  // 4. Neutral
-  else {
-    category = 'neutral_candidate';
-  }
-
-  return {
-    category,
-    matched_priority_pattern: matchedPriority,
-    matched_exclusion_pattern: matchedExclusion,
-    seller_promoter_tag,
-    is_deprioritized,
-    deprioritization_reason
-  };
+  // Neutral
+  return { category: 'neutral_candidate' };
 }
+

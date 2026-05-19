@@ -63,14 +63,13 @@ export class PriorityTierMapper {
      * 3. Fallback to category/type rules
      */
     mapTier(signalId: string, classification: SignalClassification, score?: number): PriorityTier {
-        // Sprint 13 - Seller/Promoter Deprioritization
-        if (classification.is_deprioritized) {
+        // S13-T01 Contamination Visibility Deprioritization
+        if (classification.context_tags?.includes('seller_candidate') || classification.context_tags?.includes('promoter_candidate')) {
             console.log(JSON.stringify({
-                event: "priority_tier_mapped",
+                event: "seller_candidate_deprioritized",
                 timestamp: new Date().toISOString(),
                 signal_id: signalId,
-                priority_tier: 'LOW',
-                reason: "deprioritized_contamination_suppression",
+                reason: "seller_or_promoter_contamination",
                 status: "ok"
             }));
             return 'LOW';
@@ -78,6 +77,7 @@ export class PriorityTierMapper {
 
         // 1. Score-based Thresholds (Priority)
         if (score !== undefined) {
+
             if (score >= this.config.score_thresholds.high) {
                 return 'HIGH';
             }
@@ -85,7 +85,6 @@ export class PriorityTierMapper {
                 return 'MEDIUM';
             }
         }
-
 
         const cat = classification.primary_category;
         const type = classification.signal_type;
