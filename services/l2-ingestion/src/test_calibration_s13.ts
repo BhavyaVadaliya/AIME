@@ -80,14 +80,14 @@ async function runS13CalibrationTest() {
                 console.log("Result: ❌ FAIL");
             }
         } else if (req.signal_id === 'sig-preservation-dietitian') {
-            if (tags.includes('prospect_candidate') && score !== 1 && tier !== 'LOW') {
+            if (tags.includes('prospect_candidate') && score !== undefined && score !== 1 && tier !== 'LOW') {
                 console.log("Result: ✅ PASS (Genuine prospect successfully preserved)");
             } else {
                 console.log("Result: ❌ FAIL");
             }
         } else if (req.signal_id === 'sig-mixed-safeguard') {
-            if (tags.includes('prospect_candidate') && score !== 1) {
-                console.log("Result: ✅ PASS (Mixed-signal protected and preserved)");
+            if (tags.includes('prospect_candidate') && score !== undefined && score >= 6 && tier !== 'LOW') {
+                console.log("Result: ✅ PASS (Mixed-signal protected and preserved with high score)");
             } else {
                 console.log("Result: ❌ FAIL");
             }

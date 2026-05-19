@@ -81,9 +81,14 @@ export class SignalScorer {
 
         let score = category_weight + type_adjustment + pattern_boost;
 
-        // S13-T01 Contamination Qualification Weighting Reduction
+        // S13-T01 Contamination Qualification Weighting Calibration
         if (tags.includes('seller_candidate') || tags.includes('promoter_candidate')) {
             score = 1; // Drastically reduce qualification weighting
+        } else if (tags.includes('prospect_candidate')) {
+            // S13-T01 Prospect Preservation: Elevate qualification score to ensure high visibility
+            if (score < 6) {
+                score = 6;
+            }
         }
 
         // Traceability Logging
@@ -97,6 +102,7 @@ export class SignalScorer {
             pattern_boost,
             status: "ok"
         }));
+
 
 
         return {

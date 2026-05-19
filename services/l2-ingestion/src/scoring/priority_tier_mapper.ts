@@ -128,6 +128,11 @@ export class PriorityTierMapper {
             tier = 'LOW';
         }
 
+        // S13-T01 Prospect Preservation: Ensure high-value prospects are never wrongly downgraded
+        if (classification.context_tags?.includes('prospect_candidate') && tier === 'LOW') {
+            tier = 'MEDIUM';
+        }
+
         // Traceability Logging
         console.log(JSON.stringify({
             event: "priority_tier_mapped",
@@ -141,4 +146,5 @@ export class PriorityTierMapper {
 
         return tier;
     }
+
 }

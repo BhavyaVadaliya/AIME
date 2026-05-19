@@ -114,8 +114,7 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
     textWithoutSeller = textWithoutSeller.replace(matchedCertSeller.toLowerCase(), '');
   }
 
-  const hasProfessionalCuriosity = professionalKeywords.some(kw => textWithoutSeller.includes(kw)) || 
-                                   helperKeywords.some(kw => textWithoutSeller.includes(kw));
+  const hasProfessionalCuriosity = professionalKeywords.some(kw => textWithoutSeller.includes(kw));
   const isMixedSignal = hasSellerIndicator && hasProfessionalCuriosity;
 
   // 1. Prospect Preservation Safeguard & Mixed-Signal Protection (Highest Precedence)
