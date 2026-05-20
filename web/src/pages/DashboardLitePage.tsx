@@ -28,6 +28,18 @@ interface Signal {
             source_url: string;
             timestamp: string;
         };
+        source_distribution?: {
+            status: string;
+            cluster_count: number;
+            visibility_rank: number;
+            is_source_overflow: boolean;
+        };
+    };
+    source_distribution?: {
+        status: string;
+        cluster_count: number;
+        visibility_rank: number;
+        is_source_overflow: boolean;
     };
     approval_status?: {
         state: string;
@@ -43,6 +55,14 @@ export const DashboardLitePage: React.FC = () => {
     const [showLowValue, setShowLowValue] = useState(false);
     const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
     const [scanStatus, setScanStatus] = useState<'Idle' | 'Running' | 'Complete' | 'Failed'>('Idle');
+    const [expandedCreators, setExpandedCreators] = useState<Record<string, boolean>>({});
+
+    const toggleCreator = (username: string) => {
+        setExpandedCreators(prev => ({
+            ...prev,
+            [username]: !prev[username]
+        }));
+    };
 
     const fetchData = async () => {
         try {
@@ -62,7 +82,8 @@ export const DashboardLitePage: React.FC = () => {
                 return {
                     signal_id: entry.signal_id,
                     correlation_id: entry.correlation_id || `corr-${entry.signal_id}`,
-                    structured_post: sp
+                    structured_post: sp,
+                    source_distribution: entry.source_distribution || sp?.source_distribution
                 };
             });
 
@@ -170,6 +191,48 @@ export const DashboardLitePage: React.FC = () => {
 
     const isLowValue = (s: Signal) => s.structured_post?.priority_tier === 'LOW' && (s.structured_post?.signal_score?.score || 0) <= 3;
 
+    const filteredRawSignals = React.useMemo(() => {
+        return signals.filter(s => {
+            const catMatch = filterCategory === 'All' || s.structured_post?.classification.primary_category === filterCategory;
+            const tierMatch = filterTier === 'All' || s.structured_post?.priority_tier === filterTier;
+            const queueMatch = filterQueue === 'All' || s.structured_post?.governance_route.queue === filterQueue;
+            return catMatch && tierMatch && queueMatch;
+        });
+    }, [signals, filterCategory, filterTier, filterQueue]);
+
+    const standardSignals = React.useMemo(() => filteredRawSignals.filter(s => !isLowValue(s)), [filteredRawSignals]);
+    const lowValueSignals = React.useMemo(() => filteredRawSignals.filter(s => isLowValue(s)), [filteredRawSignals]);
+
+    const getCreatorGroups = (signalsList: Signal[]) => {
+        const groups: Record<string, { username: string, visible: Signal[], overflow: Signal[] }> = {};
+        
+        signalsList.forEach(s => {
+            const username = s.structured_post?.source?.username || 'unknown';
+            if (!groups[username]) {
+                groups[username] = { username, visible: [], overflow: [] };
+            }
+            
+            const isOverflow = s.source_distribution?.is_source_overflow || s.structured_post?.source_distribution?.is_source_overflow;
+            if (isOverflow) {
+                groups[username].overflow.push(s);
+            } else {
+                groups[username].visible.push(s);
+            }
+        });
+
+        Object.values(groups).forEach(g => {
+            if (g.visible.length === 0 && g.overflow.length > 0) {
+                g.visible.push(g.overflow[0]);
+                g.overflow = g.overflow.slice(1);
+            }
+        });
+
+        return Object.values(groups);
+    };
+
+    const standardGroups = React.useMemo(() => getCreatorGroups(standardSignals), [standardSignals]);
+    const lowValueGroups = React.useMemo(() => getCreatorGroups(lowValueSignals), [lowValueSignals]);
+
     return (
         <div className="min-h-screen bg-[#0f172a] text-slate-200 p-8 font-['Inter']">
             {/* Header */}
@@ -274,22 +337,52 @@ export const DashboardLitePage: React.FC = () => {
             <div className="space-y-4">
                 {loading ? (
                     <div className="text-center py-20 animate-pulse text-slate-500">Connecting to node telemetry...</div>
-                ) : filteredSignals.length === 0 ? (
+                ) : filteredRawSignals.length === 0 ? (
                     <div className="text-center py-20 text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl">No signals matched current filters</div>
                 ) : (
                     <>
-                        {filteredSignals.filter(({ signal: s }) => !isLowValue(s)).map(({ signal, count }) => (
-                            <SignalRow 
-                                key={signal.signal_id} 
-                                signal={signal} 
-                                count={count} 
-                                mapCategoryLabel={mapCategoryLabel} 
-                                onClick={() => setSelectedSignal(signal)}
-                            />
-                        ))}
+                        {/* Standard Signals grouped by creator */}
+                        {standardGroups.map((group) => {
+                            const isExpanded = !!expandedCreators[group.username];
+                            return (
+                                <div key={group.username} className="space-y-3">
+                                    {group.visible.map(signal => (
+                                        <SignalRow 
+                                            key={signal.signal_id} 
+                                            signal={signal} 
+                                            count={1} 
+                                            mapCategoryLabel={mapCategoryLabel} 
+                                            onClick={() => setSelectedSignal(signal)}
+                                        />
+                                    ))}
+                                    
+                                    {group.overflow.length > 0 && (
+                                        <div className="space-y-3 pl-4 border-l-2 border-slate-800/80">
+                                            <OverflowCollapse 
+                                                username={group.username}
+                                                count={group.overflow.length}
+                                                isExpanded={isExpanded}
+                                                onToggle={() => toggleCreator(group.username)}
+                                            />
+                                            
+                                            {isExpanded && group.overflow.map(signal => (
+                                                <div key={signal.signal_id} className="opacity-95 scale-[0.99] origin-top transition-all duration-300">
+                                                    <SignalRow 
+                                                        signal={signal} 
+                                                        count={1} 
+                                                        mapCategoryLabel={mapCategoryLabel} 
+                                                        onClick={() => setSelectedSignal(signal)}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
 
                         {/* Low Value Signals Section */}
-                        {filteredSignals.some(({ signal: s }) => isLowValue(s)) && (
+                        {lowValueSignals.length > 0 && (
                             <div className="mt-8">
                                 <button 
                                     onClick={() => setShowLowValue(!showLowValue)}
@@ -297,23 +390,53 @@ export const DashboardLitePage: React.FC = () => {
                                 >
                                     <div className="flex items-center gap-2">
                                         <Info className="w-4 h-4" />
-                                        <span>{filteredSignals.filter(({ signal: s }) => isLowValue(s)).length} Low Value Signals {showLowValue ? 'Visible' : 'Hidden'}</span>
+                                        <span>{lowValueSignals.length} Low Value Signals {showLowValue ? 'Visible' : 'Hidden'}</span>
                                     </div>
                                     <span>{showLowValue ? 'Collapse' : 'Expand'}</span>
                                 </button>
                                 
                                 {showLowValue && (
                                     <div className="space-y-4 mt-4 opacity-70 grayscale-[0.3]">
-                                        {filteredSignals.filter(({ signal: s }) => isLowValue(s)).map(({ signal, count }) => (
-                                            <SignalRow 
-                                                key={signal.signal_id} 
-                                                signal={signal} 
-                                                count={count} 
-                                                mapCategoryLabel={mapCategoryLabel} 
-                                                isLowValue 
-                                                onClick={() => setSelectedSignal(signal)}
-                                            />
-                                        ))}
+                                        {lowValueGroups.map((group) => {
+                                            const isExpanded = !!expandedCreators[group.username];
+                                            return (
+                                                <div key={group.username} className="space-y-3">
+                                                    {group.visible.map(signal => (
+                                                        <SignalRow 
+                                                            key={signal.signal_id} 
+                                                            signal={signal} 
+                                                            count={1} 
+                                                            mapCategoryLabel={mapCategoryLabel} 
+                                                            isLowValue 
+                                                            onClick={() => setSelectedSignal(signal)}
+                                                        />
+                                                    ))}
+                                                    
+                                                    {group.overflow.length > 0 && (
+                                                        <div className="space-y-3 pl-4 border-l-2 border-slate-800/80">
+                                                            <OverflowCollapse 
+                                                                username={group.username}
+                                                                count={group.overflow.length}
+                                                                isExpanded={isExpanded}
+                                                                onToggle={() => toggleCreator(group.username)}
+                                                            />
+                                                            
+                                                            {isExpanded && group.overflow.map(signal => (
+                                                                <div key={signal.signal_id} className="opacity-95 scale-[0.99] origin-top transition-all duration-300">
+                                                                    <SignalRow 
+                                                                        signal={signal} 
+                                                                        count={1} 
+                                                                        mapCategoryLabel={mapCategoryLabel} 
+                                                                        isLowValue 
+                                                                        onClick={() => setSelectedSignal(signal)}
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -346,6 +469,33 @@ export const DashboardLitePage: React.FC = () => {
     );
 };
 
+
+const OverflowCollapse = ({ username, count, isExpanded, onToggle }: { username: string, count: number, isExpanded: boolean, onToggle: (e: any) => void }) => {
+    return (
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                onToggle(e);
+            }}
+            className="w-full flex items-center justify-between p-4 bg-slate-800/20 hover:bg-slate-800/40 border border-slate-700/30 hover:border-slate-500/30 text-slate-400 hover:text-slate-200 transition-all duration-300 rounded-2xl backdrop-blur-md cursor-pointer select-none active:scale-[0.99]"
+        >
+            <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-cyan-400" />
+                <span className="font-semibold text-slate-300 text-xs tracking-wide">
+                    {isExpanded ? 'Hide' : 'Show'} {count} more signal{count > 1 ? 's' : ''} from @{username}
+                </span>
+            </div>
+            <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    {isExpanded ? 'Collapse' : 'Expand'}
+                </span>
+                <span className="text-[10px] bg-slate-900 text-cyan-400 border border-slate-800 px-2.5 py-0.5 rounded-lg font-mono font-bold">
+                    +{count}
+                </span>
+            </div>
+        </button>
+    );
+};
 
 const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClick }: { signal: Signal, count: number, mapCategoryLabel: (c: string) => string, isLowValue?: boolean, onClick: () => void }) => {
     const s = signal.structured_post;

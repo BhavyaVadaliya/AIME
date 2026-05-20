@@ -22,7 +22,244 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    return res.json(signals || []);
+    if (!signals || signals.length === 0) {
+      return res.json([]);
+    }
+
+    // Helper functions for deterministic priority sorting
+    function getTierPriority(tier: string): number {
+      if (!tier) return 0;
+      const upper = tier.toUpperCase();
+      if (upper === 'HIGH') return 3;
+      if (upper === 'MEDIUM') return 2;
+      if (upper === 'LOW') return 1;
+      return 0;
+    }
+
+    function isProspectCandidate(s: any): boolean {
+      if (!s) return false;
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      
+      const tags = sp?.classification?.context_tags || sp?.data?.classification?.context_tags || s.context_tags || [];
+      return Array.isArray(tags) && tags.includes('prospect_candidate');
+    }
+
+    function getSignalScore(s: any): number {
+      if (!s) return 0;
+      if (typeof s.signal_score === 'number') return s.signal_score;
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      return sp?.signal_score?.score || sp?.signal_score || 0;
+    }
+
+    function getSignalTime(s: any): number {
+      if (!s) return 0;
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      return new Date(s.created_at || sp?.source?.timestamp || s.ingested_at || 0).getTime();
+    }
+
+    function normalizeUrl(url: string): string {
+      if (!url) return '';
+      try {
+        let clean = url.trim().toLowerCase();
+        clean = clean.split('?')[0];
+        if (clean.endsWith('/')) {
+          clean = clean.slice(0, -1);
+        }
+        clean = clean.replace('://www.', '://');
+        return clean;
+      } catch (e) {
+        return url.trim().toLowerCase();
+      }
+    }
+
+    // 1. Group signals by creator (handle changes/missing keys resolved)
+    interface CreatorGroup {
+      username: string;
+      author_id: string;
+      signals: any[];
+    }
+    const groups: CreatorGroup[] = [];
+
+    for (const s of signals) {
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      
+      const username = (s.username || sp?.source?.username || '').trim().toLowerCase() || 'unknown';
+      const authorId = (s.author_id || sp?.source?.author_id || '').trim().toLowerCase() || 'unknown';
+      
+      let found = groups.find(g => 
+        (authorId !== 'unknown' && g.author_id === authorId) ||
+        (username !== 'unknown' && g.username === username)
+      );
+      
+      if (found) {
+        if (found.author_id === 'unknown' && authorId !== 'unknown') {
+          found.author_id = authorId;
+        }
+        if (found.username === 'unknown' && username !== 'unknown') {
+          found.username = username;
+        }
+        found.signals.push(s);
+      } else {
+        groups.push({
+          username,
+          author_id: authorId,
+          signals: [s]
+        });
+      }
+    }
+
+    // 2. Sort signals within each creator group by value precedence
+    for (const g of groups) {
+      g.signals.sort((a, b) => {
+        const isProspectA = isProspectCandidate(a);
+        const isProspectB = isProspectCandidate(b);
+        if (isProspectA !== isProspectB) {
+          return isProspectA ? -1 : 1;
+        }
+        
+        const tierA = getTierPriority(a.priority_tier || a.structured_post?.priority_tier || 'LOW');
+        const tierB = getTierPriority(b.priority_tier || b.structured_post?.priority_tier || 'LOW');
+        if (tierA !== tierB) {
+          return tierB - tierA;
+        }
+        
+        const scoreA = getSignalScore(a);
+        const scoreB = getSignalScore(b);
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA;
+        }
+        
+        const timeA = getSignalTime(a);
+        const timeB = getSignalTime(b);
+        return timeB - timeA;
+      });
+    }
+
+    // 3. Process caps, duplicate URLs, and assign distribution metadata
+    const maxVisibleCap = 3;
+    const seenUrls = new Set<string>();
+    const enrichedSignals: any[] = [];
+    const telemetryLogs: any[] = [];
+
+    for (const g of groups) {
+      const clusterCount = g.signals.length;
+      let visibleCount = 0;
+      let overflowCount = 0;
+
+      for (const s of g.signals) {
+        let sp = s.structured_post;
+        if (sp?.structured_post) sp = sp.structured_post;
+        
+        const rawUrl = s.source_url || sp?.source?.source_url || '';
+        const normUrl = normalizeUrl(rawUrl);
+
+        let isDuplicateUrl = false;
+        if (normUrl !== '') {
+          if (seenUrls.has(normUrl)) {
+            isDuplicateUrl = true;
+          } else {
+            seenUrls.add(normUrl);
+          }
+        }
+
+        let isOverflow = false;
+        let rank = 0;
+        let status = "visible";
+
+        if (isDuplicateUrl) {
+          isOverflow = true;
+          rank = 999;
+          status = "collapsed_overflow";
+          overflowCount++;
+        } else {
+          visibleCount++;
+          rank = visibleCount;
+          if (visibleCount > maxVisibleCap) {
+            isOverflow = true;
+            status = "collapsed_overflow";
+            overflowCount++;
+          } else {
+            isOverflow = false;
+            status = "visible";
+          }
+        }
+
+        const sourceDistribution = {
+          status,
+          cluster_count: clusterCount,
+          visibility_rank: rank,
+          is_source_overflow: isOverflow
+        };
+
+        // Add distribution object to both root and structured_post
+        s.source_distribution = sourceDistribution;
+        if (s.structured_post) {
+          s.structured_post.source_distribution = sourceDistribution;
+          if (s.structured_post.data) {
+            s.structured_post.data.source_distribution = sourceDistribution;
+          }
+        }
+
+        enrichedSignals.push(s);
+      }
+
+      // Append telemetry log objects
+      if (clusterCount > 1) {
+        const creatorHandle = g.username !== 'unknown' ? `@${g.username}` : `unknown`;
+        telemetryLogs.push({
+          event: "source_concentration_detected",
+          creator: creatorHandle,
+          author_id: g.author_id,
+          signal_count: clusterCount,
+          visible_count: Math.min(clusterCount - overflowCount, maxVisibleCap),
+          overflow_count: overflowCount,
+          status: "ok"
+        });
+      }
+
+      if (overflowCount > 0) {
+        const creatorHandle = g.username !== 'unknown' ? `@${g.username}` : `unknown`;
+        telemetryLogs.push({
+          event: "source_overflow_collapsed",
+          creator: creatorHandle,
+          overflow_count: overflowCount,
+          status: "ok"
+        });
+      }
+    }
+
+    // 4. Emit structured logs and write to backup telemetry
+    for (const log of telemetryLogs) {
+      console.log(JSON.stringify(log));
+      try {
+        const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
+        fs.appendFileSync(logPath, JSON.stringify({
+          timestamp: new Date().toISOString(),
+          ...log
+        }) + "\n");
+      } catch (err) {
+        // Ignore file append errors
+      }
+    }
+
+    // 5. Final Sort: non-overflow first, then order by original created_at descending
+    enrichedSignals.sort((a, b) => {
+      const overA = a.source_distribution?.is_source_overflow ? 1 : 0;
+      const overB = b.source_distribution?.is_source_overflow ? 1 : 0;
+      if (overA !== overB) {
+        return overA - overB; // false (0) first, then true (1)
+      }
+      
+      const timeA = new Date(a.created_at || 0).getTime();
+      const timeB = new Date(b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
+
+    return res.json(enrichedSignals);
   } catch (error) {
     console.error("Governance signals read error:", error);
     return res.status(500).json({ error: "Failed to read governance database" });
