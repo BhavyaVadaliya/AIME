@@ -40,11 +40,31 @@ export const SignalClassificationBlock: React.FC<{ classification: Classificatio
                         Context Tags
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                        {classification.context_tags.map(tag => (
-                            <span key={tag} className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[10px] rounded border border-slate-700">
-                                #{tag}
-                            </span>
-                        ))}
+                        {classification.context_tags.map(tag => {
+                            let styles = 'bg-slate-800 text-slate-400 border-slate-700';
+                            if (tag === 'prospect_candidate') {
+                                styles = 'bg-pink-500/10 text-pink-400 border-pink-500/30 font-bold';
+                            } else if (tag === 'multi_signal_boost') {
+                                styles = 'bg-amber-500/15 text-amber-300 border-amber-400/40 font-black tracking-wider animate-pulse';
+                            } else if (tag === 'professional_identity_match') {
+                                styles = 'bg-violet-500/10 text-violet-300 border-violet-500/30';
+                            } else if (tag === 'career_transition_intent') {
+                                styles = 'bg-orange-500/10 text-orange-300 border-orange-500/30';
+                            } else if (tag === 'side_income_intent') {
+                                styles = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+                            } else if (tag === 'certification_interest') {
+                                styles = 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
+                            } else if (tag === 'clinical_advancement_intent') {
+                                styles = 'bg-blue-500/10 text-blue-300 border-blue-500/30';
+                            } else if (tag === 'seller_candidate' || tag === 'promoter_candidate') {
+                                styles = 'bg-slate-950/60 text-slate-600 border-slate-800/80 line-through opacity-60';
+                            }
+                            return (
+                                <span key={tag} className={`px-2 py-0.5 text-[10px] rounded border transition-all hover:scale-105 duration-200 ${styles}`}>
+                                    #{tag}
+                                </span>
+                            );
+                        })}
                     </div>
                 </div>
             )}

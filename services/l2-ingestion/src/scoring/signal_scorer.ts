@@ -81,14 +81,26 @@ export class SignalScorer {
 
         let score = category_weight + type_adjustment + pattern_boost;
 
-        // S13-T01 Contamination Qualification Weighting Calibration
+        // S13-T01 Contamination Qualification Weighting Calibration & S13-T02 Prospect Elevation / Boost
         if (tags.includes('seller_candidate') || tags.includes('promoter_candidate')) {
             score = 1; // Drastically reduce qualification weighting
         } else if (tags.includes('prospect_candidate')) {
-            // S13-T01 Prospect Preservation: Elevate qualification score to ensure high visibility
-            if (score < 6) {
-                score = 6;
+            // S13-T02 Prospect Preservation & Multi-Signal Boost
+            const hasBoost = tags.includes('multi_signal_boost');
+            const scoreFloor = hasBoost ? 8 : 6;
+            const priorityFloor = hasBoost ? 'HIGH' : 'MEDIUM';
+
+            if (score < scoreFloor) {
+                score = scoreFloor;
             }
+
+            console.log(JSON.stringify({
+                event: "prospect_candidate_elevated",
+                signal_id: signalId,
+                score_floor: scoreFloor,
+                priority_floor: priorityFloor,
+                status: "ok"
+            }));
         }
 
         // Traceability Logging

@@ -69,10 +69,13 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
 
     const classification = classifySignal(rawText);
     
-    // S13-T01 Deterministic Refinement Integration
+    // S13-T01 & S13-T02 Deterministic Refinement Integration
     const intent = refineIntent(rawText, req.signal_id);
     if (intent.category === 'seller_candidate' || intent.category === 'promoter_candidate' || intent.category === 'prospect_candidate') {
         (classification.context_tags as string[]).push(intent.category);
+    }
+    if (intent.matched_tags && intent.matched_tags.length > 0) {
+        (classification.context_tags as string[]).push(...intent.matched_tags);
     }
 
 

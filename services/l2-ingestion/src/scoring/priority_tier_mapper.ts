@@ -128,9 +128,13 @@ export class PriorityTierMapper {
             tier = 'LOW';
         }
 
-        // S13-T01 Prospect Preservation: Ensure high-value prospects are never wrongly downgraded
-        if (classification.context_tags?.includes('prospect_candidate') && tier === 'LOW') {
-            tier = 'MEDIUM';
+        // S13-T02 Prospect Preservation & Multi-Signal Boost
+        if (classification.context_tags?.includes('prospect_candidate')) {
+            if (classification.context_tags?.includes('multi_signal_boost')) {
+                tier = 'HIGH';
+            } else if (tier === 'LOW') {
+                tier = 'MEDIUM';
+            }
         }
 
         // Traceability Logging

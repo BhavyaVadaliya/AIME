@@ -12,6 +12,7 @@ interface Signal {
         classification: {
             primary_category: string;
             signal_type: string;
+            context_tags?: string[];
         };
         governance_route: {
             queue: string;
@@ -370,6 +371,17 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                         }`}>
                             {s?.priority_tier}
                         </span>
+
+                        {s?.classification?.context_tags?.includes('prospect_candidate') && (
+                            <span className="px-2 py-0.5 bg-pink-500/10 text-pink-400 border border-pink-500/30 rounded text-[10px] font-bold uppercase tracking-wider">
+                                Prospect
+                            </span>
+                        )}
+                        {s?.classification?.context_tags?.includes('multi_signal_boost') && (
+                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px] font-black uppercase tracking-widest animate-pulse">
+                                Premium Boost
+                            </span>
+                        )}
                         
                         {count > 1 && (
                             <div className="flex items-center gap-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">
