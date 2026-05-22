@@ -76,6 +76,467 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
     }
 
     // 1. Group signals by creator (handle changes/missing keys resolved)
+    // Helper functions for duplicate control
+    function getSignalText(s: any): string {
+      if (!s) return '';
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      return s.raw_text || s.text || sp?.raw_text || sp?.text || '';
+    }
+
+    function normalizeText(text: string): string {
+      if (!text) return '';
+      return text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function getTokens(text: string): string[] {
+      const normalized = normalizeText(text);
+      if (!normalized) return [];
+      return normalized.split(' ').filter(t => t.length > 1);
+    }
+
+    function getNearDuplicateSimilarity(textA: string, textB: string): number {
+      const tokensA = getTokens(textA);
+      const tokensB = getTokens(textB);
+      if (tokensA.length === 0 || tokensB.length === 0) return 0;
+      
+      const setA = new Set(tokensA);
+      const setB = new Set(tokensB);
+      
+      let intersect = 0;
+      for (const t of setA) {
+        if (setB.has(t)) {
+          intersect++;
+        }
+      }
+      
+      const unionSize = new Set([...tokensA, ...tokensB]).size;
+      if (unionSize === 0) return 0;
+      return intersect / unionSize;
+    }
+
+    function haveProspectVariance(a: any, b: any): boolean {
+      const tagsA = a.context_tags || a.structured_post?.classification?.context_tags || a.structured_post?.data?.classification?.context_tags || [];
+      const tagsB = b.context_tags || b.structured_post?.classification?.context_tags || b.structured_post?.data?.classification?.context_tags || [];
+      
+      const isProspectA = isProspectCandidate(a);
+      const isProspectB = isProspectCandidate(b);
+      if (isProspectA !== isProspectB) {
+        return true; 
+      }
+      
+      if (isProspectA && isProspectB) {
+        const profs = ["nurse", "dietitian", "dietician", "therapist", "teacher", "coach", "practitioner", "clinical", "trainer", "clinician", "md", "rn", "rd"];
+        const textA = getSignalText(a).toLowerCase();
+        const textB = getSignalText(b).toLowerCase();
+        
+        const matchedA = profs.filter(p => textA.includes(p));
+        const matchedB = profs.filter(p => textB.includes(p));
+        
+        const diffA = matchedA.filter(x => !matchedB.includes(x));
+        const diffB = matchedB.filter(x => !matchedA.includes(x));
+        if (diffA.length > 0 || diffB.length > 0) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function getContextTags(s: any): string[] {
+      if (!s) return [];
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      return sp?.classification?.context_tags || sp?.data?.classification?.context_tags || s.context_tags || [];
+    }
+
+    function getPrimaryCategory(s: any): string {
+      if (!s) return '';
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      return sp?.classification?.primary_category || sp?.data?.classification?.primary_category || '';
+    }
+
+    function getSignalType(s: any): string {
+      if (!s) return '';
+      let sp = s.structured_post;
+      if (sp?.structured_post) sp = sp.structured_post;
+      return sp?.classification?.signal_type || sp?.data?.classification?.signal_type || '';
+    }
+
+    function isStrongIntent(s: any): { strong: boolean; reason: string } {
+      if (isProspectCandidate(s)) {
+        return { strong: true, reason: "prospect_candidate" };
+      }
+      const tags = getContextTags(s) || [];
+      const strongTags = [
+        "professional_identity_match",
+        "side_income_intent",
+        "career_transition_intent",
+        "certification_interest",
+        "clinical_advancement_intent"
+      ];
+      for (const st of strongTags) {
+        if (tags.includes(st)) {
+          return { strong: true, reason: st };
+        }
+      }
+      
+      const cat = getPrimaryCategory(s).toLowerCase();
+      const type = getSignalType(s).toLowerCase();
+      
+      const checkTerms = ["monetization", "problem", "question"];
+      for (const term of checkTerms) {
+        if (cat === term || type === term || tags.some(t => t.toLowerCase() === term)) {
+          return { strong: true, reason: term };
+        }
+      }
+      return { strong: false, reason: "" };
+    }
+
+    const categoryAPatterns = [
+      "grwm", "day in the life", "spend the day with me", "come with me", "vlog",
+      "morning routine", "night routine", "wellness routine", "what i eat in a day",
+      "aesthetic", "my wellness era", "gym fit", "fit check"
+    ];
+    const categoryBPatterns = [
+      "wellness journey", "healthy lifestyle", "self care day", "good vibes",
+      "reset day", "glow up", "routine reset", "romanticize your life"
+    ];
+    const categoryCPatterns = [
+      "you got this", "trust the process", "consistency is key", "small steps",
+      "just start", "keep going", "believe in yourself"
+    ];
+
+    function detectLowIntent(normText: string): { matched: boolean; pattern: string; category: string } {
+      if (!normText) return { matched: false, pattern: "", category: "" };
+
+      for (const p of categoryAPatterns) {
+        if (normText.includes(p)) {
+          return { matched: true, pattern: p, category: "lifestyle_vlog" };
+        }
+      }
+      for (const p of categoryBPatterns) {
+        if (normText.includes(p)) {
+          return { matched: true, pattern: p, category: "wellness_filler" };
+        }
+      }
+      for (const p of categoryCPatterns) {
+        if (normText.includes(p)) {
+          return { matched: true, pattern: p, category: "motivational_filler" };
+        }
+      }
+
+      return { matched: false, pattern: "", category: "" };
+    }
+
+    // Category C: Low Information Patterns (Legacy)
+    const LOW_INFO_PATTERNS = [
+      "this is amazing",
+      "so true",
+      "wow",
+      "great info",
+      "love this",
+      "need this",
+      "dm me"
+    ];
+
+    const duplicateClusters: any[][] = [];
+    const lowInfoSignals: any[] = [];
+    const mainSignals: any[] = [];
+    const telemetryLogs: any[] = [];
+
+    // First pass: identify low-info and low-intent comments and separate/preserve
+    for (const s of signals) {
+      const text = getSignalText(s);
+      const norm = normalizeText(text);
+      const lowIntent = detectLowIntent(norm);
+      const isProspect = isProspectCandidate(s);
+      
+      if (lowIntent.matched) {
+        const safeguard = isStrongIntent(s);
+        if (safeguard.strong) {
+          // PRESERVE the signal (do not collapse)
+          const metadata = {
+            is_low_intent: false,
+            matched_pattern: lowIntent.pattern,
+            noise_category: lowIntent.category,
+            low_intent_phrase_overridden: true,
+            override_reason: safeguard.reason
+          };
+          s.low_intent_noise = metadata;
+          if (s.structured_post) {
+            s.structured_post.low_intent_noise = metadata;
+            if (s.structured_post.data) {
+              s.structured_post.data.low_intent_noise = metadata;
+            }
+          }
+          
+          // Append tag
+          const tags = getContextTags(s);
+          if (!tags.includes("low_intent_phrase_overridden")) {
+            tags.push("low_intent_phrase_overridden");
+          }
+          if (s.context_tags) s.context_tags = tags;
+          if (s.structured_post) {
+            if (!s.structured_post.classification) s.structured_post.classification = {};
+            s.structured_post.classification.context_tags = tags;
+            if (s.structured_post.data) {
+              if (!s.structured_post.data.classification) s.structured_post.data.classification = {};
+              s.structured_post.data.classification.context_tags = tags;
+            }
+          }
+
+          telemetryLogs.push({
+            event: "low_intent_preserved_by_intent_override",
+            signal_id: s.signal_id,
+            low_intent_pattern: lowIntent.pattern,
+            override_reason: safeguard.reason,
+            status: "ok"
+          });
+
+          mainSignals.push(s);
+        } else {
+          // Collapse low-intent noise signal
+          const metadata = {
+            is_low_intent: true,
+            matched_pattern: lowIntent.pattern,
+            noise_category: lowIntent.category,
+            low_intent_phrase_overridden: false
+          };
+          s.low_intent_noise = metadata;
+          if (s.structured_post) {
+            s.structured_post.low_intent_noise = metadata;
+            if (s.structured_post.data) {
+              s.structured_post.data.low_intent_noise = metadata;
+            }
+          }
+
+          // Append tag
+          const tags = getContextTags(s);
+          if (!tags.includes("low_intent_noise")) {
+            tags.push("low_intent_noise");
+          }
+          if (s.context_tags) s.context_tags = tags;
+          if (s.structured_post) {
+            if (!s.structured_post.classification) s.structured_post.classification = {};
+            s.structured_post.classification.context_tags = tags;
+            if (s.structured_post.data) {
+              if (!s.structured_post.data.classification) s.structured_post.data.classification = {};
+              s.structured_post.data.classification.context_tags = tags;
+            }
+          }
+
+          s.duplicate_control = {
+            cluster_id: "low-intent-suppressed",
+            duplicate_type: "low_intent_noise",
+            is_cluster_representative: false,
+            cluster_size: 1,
+            collapsed: true
+          };
+          if (s.structured_post) {
+            s.structured_post.duplicate_control = s.duplicate_control;
+            if (s.structured_post.data) {
+              s.structured_post.data.duplicate_control = s.duplicate_control;
+            }
+          }
+
+          telemetryLogs.push({
+            event: "low_intent_noise_detected",
+            signal_id: s.signal_id,
+            matched_pattern: lowIntent.pattern,
+            noise_category: lowIntent.category,
+            status: "ok"
+          });
+          telemetryLogs.push({
+            event: "low_intent_signal_collapsed",
+            signal_id: s.signal_id,
+            matched_pattern: lowIntent.pattern,
+            status: "ok"
+          });
+
+          lowInfoSignals.push(s);
+        }
+      } else {
+        // Fallback to legacy low information comment check
+        const isLowInfo = LOW_INFO_PATTERNS.includes(norm);
+        
+        // Initialize default low_intent_noise metadata
+        const metadata = {
+          is_low_intent: false,
+          low_intent_phrase_overridden: false
+        };
+        s.low_intent_noise = metadata;
+        if (s.structured_post) {
+          s.structured_post.low_intent_noise = metadata;
+          if (s.structured_post.data) {
+            s.structured_post.data.low_intent_noise = metadata;
+          }
+        }
+
+        if (isLowInfo && !isProspect && getTierPriority(s.priority_tier || s.structured_post?.priority_tier || 'LOW') <= 1) {
+          s.duplicate_control = {
+            cluster_id: "low-info-suppressed",
+            duplicate_type: "low_information",
+            is_cluster_representative: false,
+            cluster_size: 1,
+            collapsed: true
+          };
+          if (s.structured_post) {
+            s.structured_post.duplicate_control = s.duplicate_control;
+            if (s.structured_post.data) {
+              s.structured_post.data.duplicate_control = s.duplicate_control;
+            }
+          }
+          lowInfoSignals.push(s);
+
+          telemetryLogs.push({
+            event: "low_information_signal_collapsed",
+            signal_id: s.signal_id,
+            matched_pattern: norm,
+            status: "ok"
+          });
+        } else {
+          mainSignals.push(s);
+        }
+      }
+    }
+
+    // Second pass: Cluster exact duplicates and near-duplicates on mainSignals
+    for (const s of mainSignals) {
+      let matchedCluster = null;
+      
+      for (const cluster of duplicateClusters) {
+        const rep = cluster[0];
+        const textA = getSignalText(s);
+        const textB = getSignalText(rep);
+        const normA = normalizeText(textA);
+        const normB = normalizeText(textB);
+        
+        const isExact = (normA === normB && normA !== '');
+        const isNear = getNearDuplicateSimilarity(textA, textB) >= 0.7;
+        
+        if ((isExact || isNear) && !haveProspectVariance(s, rep)) {
+          matchedCluster = cluster;
+          break;
+        }
+      }
+      
+      if (matchedCluster) {
+        matchedCluster.push(s);
+      } else {
+        duplicateClusters.push([s]);
+      }
+    }
+
+    // Third pass: Mark representatives vs collapsed variants in each cluster
+    const processedSignals: any[] = [];
+    let clusterCounter = 1;
+
+    for (const cluster of duplicateClusters) {
+      const clusterSize = cluster.length;
+      
+      if (clusterSize === 1) {
+        const s = cluster[0];
+        s.duplicate_control = {
+          cluster_id: `dup-cluster-${clusterCounter++}`,
+          duplicate_type: "none",
+          is_cluster_representative: true,
+          cluster_size: 1,
+          collapsed: false
+        };
+        if (s.structured_post) {
+          s.structured_post.duplicate_control = s.duplicate_control;
+          if (s.structured_post.data) {
+            s.structured_post.data.duplicate_control = s.duplicate_control;
+          }
+        }
+        processedSignals.push(s);
+      } else {
+        // Sort within cluster by value precedence
+        cluster.sort((a, b) => {
+          const isProspectA = isProspectCandidate(a);
+          const isProspectB = isProspectCandidate(b);
+          if (isProspectA !== isProspectB) {
+            return isProspectA ? -1 : 1;
+          }
+          
+          const tierA = getTierPriority(a.priority_tier || a.structured_post?.priority_tier || 'LOW');
+          const tierB = getTierPriority(b.priority_tier || b.structured_post?.priority_tier || 'LOW');
+          if (tierA !== tierB) {
+            return tierB - tierA;
+          }
+          
+          const scoreA = getSignalScore(a);
+          const scoreB = getSignalScore(b);
+          if (scoreA !== scoreB) {
+            return scoreB - scoreA;
+          }
+          
+          const timeA = getSignalTime(a);
+          const timeB = getSignalTime(b);
+          return timeB - timeA;
+        });
+
+        const clusterId = `dup-cluster-${clusterCounter++}`;
+        const rep = cluster[0];
+        const normRep = normalizeText(getSignalText(rep));
+        
+        rep.duplicate_control = {
+          cluster_id: clusterId,
+          duplicate_type: "none",
+          is_cluster_representative: true,
+          cluster_size: clusterSize,
+          collapsed: false
+        };
+        if (rep.structured_post) {
+          rep.structured_post.duplicate_control = rep.duplicate_control;
+          if (rep.structured_post.data) {
+            rep.structured_post.data.duplicate_control = rep.duplicate_control;
+          }
+        }
+        processedSignals.push(rep);
+
+        let hasExact = false;
+        for (let i = 1; i < clusterSize; i++) {
+          const s = cluster[i];
+          const normS = normalizeText(getSignalText(s));
+          const isExact = (normS === normRep);
+          if (isExact) hasExact = true;
+          
+          s.duplicate_control = {
+            cluster_id: clusterId,
+            duplicate_type: isExact ? "exact_duplicate" : "near_duplicate",
+            is_cluster_representative: false,
+            cluster_size: clusterSize,
+            collapsed: true
+          };
+          if (s.structured_post) {
+            s.structured_post.duplicate_control = s.duplicate_control;
+            if (s.structured_post.data) {
+              s.structured_post.data.duplicate_control = s.duplicate_control;
+            }
+          }
+          processedSignals.push(s);
+        }
+
+        // Emit telemetry log
+        telemetryLogs.push({
+          event: "duplicate_cluster_detected",
+          cluster_id: clusterId,
+          duplicate_type: hasExact ? "exact_duplicate" : "near_duplicate",
+          cluster_size: clusterSize,
+          status: "ok"
+        });
+      }
+    }
+
+    const allCalibratedSignals = [...processedSignals, ...lowInfoSignals];
+
+    // 4. S13-T03: Group signals by creator (re-calibrated)
     interface CreatorGroup {
       username: string;
       author_id: string;
@@ -83,7 +544,7 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
     }
     const groups: CreatorGroup[] = [];
 
-    for (const s of signals) {
+    for (const s of allCalibratedSignals) {
       let sp = s.structured_post;
       if (sp?.structured_post) sp = sp.structured_post;
       
@@ -112,7 +573,7 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
       }
     }
 
-    // 2. Sort signals within each creator group by value precedence
+    // Sort signals within each creator group by value precedence
     for (const g of groups) {
       g.signals.sort((a, b) => {
         const isProspectA = isProspectCandidate(a);
@@ -139,11 +600,9 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
       });
     }
 
-    // 3. Process caps, duplicate URLs, and assign distribution metadata
     const maxVisibleCap = 3;
     const seenUrls = new Set<string>();
     const enrichedSignals: any[] = [];
-    const telemetryLogs: any[] = [];
 
     for (const g of groups) {
       const clusterCount = g.signals.length;
@@ -170,7 +629,12 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
         let rank = 0;
         let status = "visible";
 
-        if (isDuplicateUrl) {
+        if (s.duplicate_control?.collapsed === true) {
+          isOverflow = true;
+          rank = 999;
+          status = "collapsed_overflow";
+          overflowCount++;
+        } else if (isDuplicateUrl) {
           isOverflow = true;
           rank = 999;
           status = "collapsed_overflow";
@@ -207,7 +671,7 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
         enrichedSignals.push(s);
       }
 
-      // Append telemetry log objects
+      // S13-T03 Creator Concentration Log
       if (clusterCount > 1) {
         const creatorHandle = g.username !== 'unknown' ? `@${g.username}` : `unknown`;
         telemetryLogs.push({
@@ -232,7 +696,7 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
       }
     }
 
-    // 4. Emit structured logs and write to backup telemetry
+    // 5. Emit all structured logs to console and l2_logs.txt
     for (const log of telemetryLogs) {
       console.log(JSON.stringify(log));
       try {
@@ -242,16 +706,16 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
           ...log
         }) + "\n");
       } catch (err) {
-        // Ignore file append errors
+        // Ignore
       }
     }
 
-    // 5. Final Sort: non-overflow first, then order by original created_at descending
+    // 6. Final Sort: Visible first, then Collapsed Overflow; inside each, sort by created_at descending
     enrichedSignals.sort((a, b) => {
       const overA = a.source_distribution?.is_source_overflow ? 1 : 0;
       const overB = b.source_distribution?.is_source_overflow ? 1 : 0;
       if (overA !== overB) {
-        return overA - overB; // false (0) first, then true (1)
+        return overA - overB;
       }
       
       const timeA = new Date(a.created_at || 0).getTime();

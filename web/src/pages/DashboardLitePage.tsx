@@ -34,12 +34,40 @@ interface Signal {
             visibility_rank: number;
             is_source_overflow: boolean;
         };
+        duplicate_control?: {
+            cluster_id: string;
+            duplicate_type: string;
+            is_cluster_representative: boolean;
+            cluster_size: number;
+            collapsed: boolean;
+        };
+        low_intent_noise?: {
+            is_low_intent: boolean;
+            matched_pattern?: string;
+            noise_category?: string;
+            low_intent_phrase_overridden?: boolean;
+            override_reason?: string;
+        };
     };
     source_distribution?: {
         status: string;
         cluster_count: number;
         visibility_rank: number;
         is_source_overflow: boolean;
+    };
+    duplicate_control?: {
+        cluster_id: string;
+        duplicate_type: string;
+        is_cluster_representative: boolean;
+        cluster_size: number;
+        collapsed: boolean;
+    };
+    low_intent_noise?: {
+        is_low_intent: boolean;
+        matched_pattern?: string;
+        noise_category?: string;
+        low_intent_phrase_overridden?: boolean;
+        override_reason?: string;
     };
     approval_status?: {
         state: string;
@@ -53,14 +81,23 @@ export const DashboardLitePage: React.FC = () => {
     const [filterQueue, setFilterQueue] = useState('All');
     const [loading, setLoading] = useState(true);
     const [showLowValue, setShowLowValue] = useState(false);
+    const [showLowIntent, setShowLowIntent] = useState(false);
     const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
     const [scanStatus, setScanStatus] = useState<'Idle' | 'Running' | 'Complete' | 'Failed'>('Idle');
     const [expandedCreators, setExpandedCreators] = useState<Record<string, boolean>>({});
+    const [expandedDuplicates, setExpandedDuplicates] = useState<Record<string, boolean>>({});
 
     const toggleCreator = (username: string) => {
         setExpandedCreators(prev => ({
             ...prev,
             [username]: !prev[username]
+        }));
+    };
+
+    const toggleDuplicateCluster = (clusterId: string) => {
+        setExpandedDuplicates(prev => ({
+            ...prev,
+            [clusterId]: !prev[clusterId]
         }));
     };
 
@@ -83,7 +120,9 @@ export const DashboardLitePage: React.FC = () => {
                     signal_id: entry.signal_id,
                     correlation_id: entry.correlation_id || `corr-${entry.signal_id}`,
                     structured_post: sp,
-                    source_distribution: entry.source_distribution || sp?.source_distribution
+                    source_distribution: entry.source_distribution || sp?.source_distribution,
+                    duplicate_control: entry.duplicate_control || sp?.duplicate_control,
+                    low_intent_noise: entry.low_intent_noise || sp?.low_intent_noise
                 };
             });
 
@@ -189,7 +228,8 @@ export const DashboardLitePage: React.FC = () => {
 
     const mapCategoryLabel = (cat: string) => cat === 'UNCLASSIFIED' ? 'General' : cat;
 
-    const isLowValue = (s: Signal) => s.structured_post?.priority_tier === 'LOW' && (s.structured_post?.signal_score?.score || 0) <= 3;
+    const isLowIntent = (s: Signal) => s.low_intent_noise?.is_low_intent === true || s.structured_post?.low_intent_noise?.is_low_intent === true;
+    const isLowValue = (s: Signal) => !isLowIntent(s) && s.structured_post?.priority_tier === 'LOW' && (s.structured_post?.signal_score?.score || 0) <= 3;
 
     const filteredRawSignals = React.useMemo(() => {
         return signals.filter(s => {
@@ -200,8 +240,9 @@ export const DashboardLitePage: React.FC = () => {
         });
     }, [signals, filterCategory, filterTier, filterQueue]);
 
-    const standardSignals = React.useMemo(() => filteredRawSignals.filter(s => !isLowValue(s)), [filteredRawSignals]);
+    const standardSignals = React.useMemo(() => filteredRawSignals.filter(s => !isLowValue(s) && !isLowIntent(s)), [filteredRawSignals]);
     const lowValueSignals = React.useMemo(() => filteredRawSignals.filter(s => isLowValue(s)), [filteredRawSignals]);
+    const lowIntentSignals = React.useMemo(() => filteredRawSignals.filter(s => isLowIntent(s)), [filteredRawSignals]);
 
     const getCreatorGroups = (signalsList: Signal[]) => {
         const groups: Record<string, { username: string, visible: Signal[], overflow: Signal[] }> = {};
@@ -210,6 +251,11 @@ export const DashboardLitePage: React.FC = () => {
             const username = s.structured_post?.source?.username || 'unknown';
             if (!groups[username]) {
                 groups[username] = { username, visible: [], overflow: [] };
+            }
+            
+            // Exclude collapsed duplicate variants from creator's top-level lists
+            if (s.duplicate_control?.collapsed === true) {
+                return;
             }
             
             const isOverflow = s.source_distribution?.is_source_overflow || s.structured_post?.source_distribution?.is_source_overflow;
@@ -232,6 +278,7 @@ export const DashboardLitePage: React.FC = () => {
 
     const standardGroups = React.useMemo(() => getCreatorGroups(standardSignals), [standardSignals]);
     const lowValueGroups = React.useMemo(() => getCreatorGroups(lowValueSignals), [lowValueSignals]);
+    const lowIntentGroups = React.useMemo(() => getCreatorGroups(lowIntentSignals), [lowIntentSignals]);
 
     return (
         <div className="min-h-screen bg-[#0f172a] text-slate-200 p-8 font-['Inter']">
@@ -346,15 +393,66 @@ export const DashboardLitePage: React.FC = () => {
                             const isExpanded = !!expandedCreators[group.username];
                             return (
                                 <div key={group.username} className="space-y-3">
-                                    {group.visible.map(signal => (
-                                        <SignalRow 
-                                            key={signal.signal_id} 
-                                            signal={signal} 
-                                            count={1} 
-                                            mapCategoryLabel={mapCategoryLabel} 
-                                            onClick={() => setSelectedSignal(signal)}
-                                        />
-                                    ))}
+                                    {group.visible.map(signal => {
+                                        const clusterId = signal.duplicate_control?.cluster_id;
+                                        const isRepresentative = signal.duplicate_control?.is_cluster_representative === true;
+                                        const clusterSize = signal.duplicate_control?.cluster_size || 1;
+                                        
+                                        const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
+                                            ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                            : [];
+                                            
+                                        const isDupExpanded = !!expandedDuplicates[clusterId || ''];
+                                        
+                                        return (
+                                            <div key={signal.signal_id} className="space-y-3">
+                                                <SignalRow 
+                                                    signal={signal} 
+                                                    count={1} 
+                                                    mapCategoryLabel={mapCategoryLabel} 
+                                                    onClick={() => setSelectedSignal(signal)}
+                                                />
+                                                
+                                                {collapsedDuplicates.length > 0 && (
+                                                    <div className="pl-6 space-y-3 border-l-2 border-slate-700/50">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleDuplicateCluster(clusterId!);
+                                                            }}
+                                                            className="flex items-center justify-between w-full p-3 bg-slate-800/10 hover:bg-slate-800/30 border border-slate-700/20 hover:border-slate-500/20 text-slate-400 hover:text-slate-200 transition-all rounded-xl cursor-pointer select-none active:scale-[0.99]"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <Layers className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                                                                <span className="font-semibold text-slate-400 text-xs tracking-wide">
+                                                                    {isDupExpanded ? 'Hide' : 'Show'} {collapsedDuplicates.length} similar repetitive signal{collapsedDuplicates.length > 1 ? 's' : ''} collapsed
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+                                                                    {isDupExpanded ? 'Collapse' : 'Expand'}
+                                                                </span>
+                                                                <span className="text-[9px] bg-slate-900/60 text-amber-400 border border-slate-800 px-2 py-0.5 rounded font-mono font-bold">
+                                                                    +{collapsedDuplicates.length}
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                        
+                                                        {isDupExpanded && collapsedDuplicates.map(dupSignal => (
+                                                            <div key={dupSignal.signal_id} className="opacity-90 scale-[0.98] origin-top transition-all duration-300">
+                                                                <SignalRow 
+                                                                    signal={dupSignal} 
+                                                                    count={1} 
+                                                                    mapCategoryLabel={mapCategoryLabel} 
+                                                                    onClick={() => setSelectedSignal(dupSignal)}
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                     
                                     {group.overflow.length > 0 && (
                                         <div className="space-y-3 pl-4 border-l-2 border-slate-800/80">
@@ -365,16 +463,66 @@ export const DashboardLitePage: React.FC = () => {
                                                 onToggle={() => toggleCreator(group.username)}
                                             />
                                             
-                                            {isExpanded && group.overflow.map(signal => (
-                                                <div key={signal.signal_id} className="opacity-95 scale-[0.99] origin-top transition-all duration-300">
-                                                    <SignalRow 
-                                                        signal={signal} 
-                                                        count={1} 
-                                                        mapCategoryLabel={mapCategoryLabel} 
-                                                        onClick={() => setSelectedSignal(signal)}
-                                                    />
-                                                </div>
-                                            ))}
+                                            {isExpanded && group.overflow.map(signal => {
+                                                const clusterId = signal.duplicate_control?.cluster_id;
+                                                const isRepresentative = signal.duplicate_control?.is_cluster_representative === true;
+                                                const clusterSize = signal.duplicate_control?.cluster_size || 1;
+                                                
+                                                const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
+                                                    ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                                    : [];
+                                                    
+                                                const isDupExpanded = !!expandedDuplicates[clusterId || ''];
+                                                
+                                                return (
+                                                    <div key={signal.signal_id} className="space-y-3 opacity-95 scale-[0.99] origin-top transition-all duration-300">
+                                                        <SignalRow 
+                                                            signal={signal} 
+                                                            count={1} 
+                                                            mapCategoryLabel={mapCategoryLabel} 
+                                                            onClick={() => setSelectedSignal(signal)}
+                                                        />
+                                                        
+                                                        {collapsedDuplicates.length > 0 && (
+                                                            <div className="pl-6 space-y-3 border-l-2 border-slate-700/50">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        toggleDuplicateCluster(clusterId!);
+                                                                    }}
+                                                                    className="flex items-center justify-between w-full p-3 bg-slate-800/10 hover:bg-slate-800/30 border border-slate-700/20 hover:border-slate-500/20 text-slate-400 hover:text-slate-200 transition-all rounded-xl cursor-pointer select-none active:scale-[0.99]"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Layers className="w-3.5 h-3.5 text-amber-500" />
+                                                                        <span className="font-semibold text-slate-400 text-xs tracking-wide">
+                                                                            {isDupExpanded ? 'Hide' : 'Show'} {collapsedDuplicates.length} similar repetitive signal{collapsedDuplicates.length > 1 ? 's' : ''} collapsed
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+                                                                            {isDupExpanded ? 'Collapse' : 'Expand'}
+                                                                        </span>
+                                                                        <span className="text-[9px] bg-slate-900/60 text-amber-400 border border-slate-800 px-2 py-0.5 rounded font-mono font-bold">
+                                                                            +{collapsedDuplicates.length}
+                                                                        </span>
+                                                                    </div>
+                                                                </button>
+                                                                
+                                                                {isDupExpanded && collapsedDuplicates.map(dupSignal => (
+                                                                    <div key={dupSignal.signal_id} className="opacity-90 scale-[0.98] origin-top transition-all duration-300">
+                                                                        <SignalRow 
+                                                                            signal={dupSignal} 
+                                                                            count={1} 
+                                                                            mapCategoryLabel={mapCategoryLabel} 
+                                                                            onClick={() => setSelectedSignal(dupSignal)}
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -401,16 +549,68 @@ export const DashboardLitePage: React.FC = () => {
                                             const isExpanded = !!expandedCreators[group.username];
                                             return (
                                                 <div key={group.username} className="space-y-3">
-                                                    {group.visible.map(signal => (
-                                                        <SignalRow 
-                                                            key={signal.signal_id} 
-                                                            signal={signal} 
-                                                            count={1} 
-                                                            mapCategoryLabel={mapCategoryLabel} 
-                                                            isLowValue 
-                                                            onClick={() => setSelectedSignal(signal)}
-                                                        />
-                                                    ))}
+                                                    {group.visible.map(signal => {
+                                                        const clusterId = signal.duplicate_control?.cluster_id;
+                                                        const isRepresentative = signal.duplicate_control?.is_cluster_representative === true;
+                                                        const clusterSize = signal.duplicate_control?.cluster_size || 1;
+                                                        
+                                                        const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
+                                                            ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                                            : [];
+                                                            
+                                                        const isDupExpanded = !!expandedDuplicates[clusterId || ''];
+                                                        
+                                                        return (
+                                                            <div key={signal.signal_id} className="space-y-3">
+                                                                <SignalRow 
+                                                                    signal={signal} 
+                                                                    count={1} 
+                                                                    mapCategoryLabel={mapCategoryLabel} 
+                                                                    isLowValue 
+                                                                    onClick={() => setSelectedSignal(signal)}
+                                                                />
+                                                                
+                                                                {collapsedDuplicates.length > 0 && (
+                                                                    <div className="pl-6 space-y-3 border-l-2 border-slate-700/50">
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                toggleDuplicateCluster(clusterId!);
+                                                                            }}
+                                                                            className="flex items-center justify-between w-full p-3 bg-slate-800/10 hover:bg-slate-800/30 border border-slate-700/20 hover:border-slate-500/20 text-slate-400 hover:text-slate-200 transition-all rounded-xl cursor-pointer select-none active:scale-[0.99]"
+                                                                        >
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Layers className="w-3.5 h-3.5 text-amber-500" />
+                                                                                <span className="font-semibold text-slate-400 text-xs tracking-wide">
+                                                                                    {isDupExpanded ? 'Hide' : 'Show'} {collapsedDuplicates.length} similar repetitive signal{collapsedDuplicates.length > 1 ? 's' : ''} collapsed
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+                                                                                    {isDupExpanded ? 'Collapse' : 'Expand'}
+                                                                                </span>
+                                                                                <span className="text-[9px] bg-slate-900/60 text-amber-400 border border-slate-800 px-2 py-0.5 rounded font-mono font-bold">
+                                                                                    +{collapsedDuplicates.length}
+                                                                                </span>
+                                                                            </div>
+                                                                        </button>
+                                                                        
+                                                                        {isDupExpanded && collapsedDuplicates.map(dupSignal => (
+                                                                            <div key={dupSignal.signal_id} className="opacity-90 scale-[0.98] origin-top transition-all duration-300">
+                                                                                <SignalRow 
+                                                                                    signal={dupSignal} 
+                                                                                    count={1} 
+                                                                                    mapCategoryLabel={mapCategoryLabel} 
+                                                                                    isLowValue 
+                                                                                    onClick={() => setSelectedSignal(dupSignal)}
+                                                                                />
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                     
                                                     {group.overflow.length > 0 && (
                                                         <div className="space-y-3 pl-4 border-l-2 border-slate-800/80">
@@ -421,16 +621,127 @@ export const DashboardLitePage: React.FC = () => {
                                                                 onToggle={() => toggleCreator(group.username)}
                                                             />
                                                             
+                                                            {isExpanded && group.overflow.map(signal => {
+                                                                const clusterId = signal.duplicate_control?.cluster_id;
+                                                                const isRepresentative = signal.duplicate_control?.is_cluster_representative === true;
+                                                                const clusterSize = signal.duplicate_control?.cluster_size || 1;
+                                                                
+                                                                const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
+                                                                    ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                                                    : [];
+                                                                    
+                                                                const isDupExpanded = !!expandedDuplicates[clusterId || ''];
+                                                                
+                                                                return (
+                                                                    <div key={signal.signal_id} className="space-y-3 opacity-95 scale-[0.99] origin-top transition-all duration-300">
+                                                                        <SignalRow 
+                                                                            signal={signal} 
+                                                                            count={1} 
+                                                                            mapCategoryLabel={mapCategoryLabel} 
+                                                                            isLowValue 
+                                                                            onClick={() => setSelectedSignal(signal)}
+                                                                        />
+                                                                        
+                                                                        {collapsedDuplicates.length > 0 && (
+                                                                            <div className="pl-6 space-y-3 border-l-2 border-slate-700/50">
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        toggleDuplicateCluster(clusterId!);
+                                                                                    }}
+                                                                                    className="flex items-center justify-between w-full p-3 bg-slate-800/10 hover:bg-slate-800/30 border border-slate-700/20 hover:border-slate-500/20 text-slate-400 hover:text-slate-200 transition-all rounded-xl cursor-pointer select-none active:scale-[0.99]"
+                                                                                >
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <Layers className="w-3.5 h-3.5 text-amber-500" />
+                                                                                        <span className="font-semibold text-slate-400 text-xs tracking-wide">
+                                                                                            {isDupExpanded ? 'Hide' : 'Show'} {collapsedDuplicates.length} similar repetitive signal{collapsedDuplicates.length > 1 ? 's' : ''} collapsed
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+                                                                                            {isDupExpanded ? 'Collapse' : 'Expand'}
+                                                                                        </span>
+                                                                                        <span className="text-[9px] bg-slate-900/60 text-amber-400 border border-slate-800 px-2 py-0.5 rounded font-mono font-bold">
+                                                                                            +{collapsedDuplicates.length}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </button>
+                                                                                
+                                                                                {isDupExpanded && collapsedDuplicates.map(dupSignal => (
+                                                                                    <div key={dupSignal.signal_id} className="opacity-90 scale-[0.98] origin-top transition-all duration-300">
+                                                                                        <SignalRow 
+                                                                                            signal={dupSignal} 
+                                                                                            count={1} 
+                                                                                            mapCategoryLabel={mapCategoryLabel} 
+                                                                                            isLowValue 
+                                                                                            onClick={() => setSelectedSignal(dupSignal)}
+                                                                                        />
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Collapsed Low-Intent Signals Section */}
+                        {lowIntentSignals.length > 0 && (
+                            <div className="mt-6">
+                                <button 
+                                    onClick={() => setShowLowIntent(!showLowIntent)}
+                                    className="w-full flex items-center justify-between p-4 bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800/80 rounded-2xl text-slate-400 text-sm font-semibold tracking-wide transition-all backdrop-blur-md"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <AlertTriangle className="w-4 h-4 text-amber-500/80 animate-pulse" />
+                                        <span>{lowIntentSignals.length} Collapsed Low-Intent Signal{lowIntentSignals.length > 1 ? 's' : ''} {showLowIntent ? 'Visible' : 'Hidden'}</span>
+                                    </div>
+                                    <span className="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-xl border border-slate-700/50">
+                                        {showLowIntent ? 'Collapse' : 'Expand'}
+                                    </span>
+                                </button>
+                                
+                                {showLowIntent && (
+                                    <div className="space-y-4 mt-4 opacity-75">
+                                        {lowIntentGroups.map((group) => {
+                                            const isExpanded = !!expandedCreators[group.username];
+                                            return (
+                                                <div key={group.username} className="space-y-3">
+                                                    {group.visible.map(signal => (
+                                                        <SignalRow 
+                                                            key={signal.signal_id}
+                                                            signal={signal} 
+                                                            count={1} 
+                                                            mapCategoryLabel={mapCategoryLabel} 
+                                                            isLowValue 
+                                                            onClick={() => setSelectedSignal(signal)}
+                                                        />
+                                                    ))}
+                                                    {group.overflow.length > 0 && (
+                                                        <div className="space-y-3 pl-4 border-l-2 border-slate-800/80">
+                                                            <OverflowCollapse 
+                                                                username={group.username}
+                                                                count={group.overflow.length}
+                                                                isExpanded={isExpanded}
+                                                                onToggle={() => toggleCreator(group.username)}
+                                                            />
                                                             {isExpanded && group.overflow.map(signal => (
-                                                                <div key={signal.signal_id} className="opacity-95 scale-[0.99] origin-top transition-all duration-300">
-                                                                    <SignalRow 
-                                                                        signal={signal} 
-                                                                        count={1} 
-                                                                        mapCategoryLabel={mapCategoryLabel} 
-                                                                        isLowValue 
-                                                                        onClick={() => setSelectedSignal(signal)}
-                                                                    />
-                                                                </div>
+                                                                <SignalRow 
+                                                                    key={signal.signal_id}
+                                                                    signal={signal} 
+                                                                    count={1} 
+                                                                    mapCategoryLabel={mapCategoryLabel} 
+                                                                    isLowValue 
+                                                                    onClick={() => setSelectedSignal(signal)}
+                                                                />
                                                             ))}
                                                         </div>
                                                     )}
@@ -538,6 +849,18 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                                 <Layers className="w-3 h-3" />
                                 x{count}
                             </div>
+                        )}
+
+                        {/* Low-Intent Badges */}
+                        {(signal.low_intent_noise?.is_low_intent || s?.low_intent_noise?.is_low_intent) && (
+                            <span className="px-2 py-0.5 bg-slate-700/30 text-slate-400 border border-slate-600/30 rounded text-[10px] font-bold uppercase tracking-wider">
+                                Low-Intent: {signal.low_intent_noise?.matched_pattern || s?.low_intent_noise?.matched_pattern}
+                            </span>
+                        )}
+                        {(signal.low_intent_noise?.low_intent_phrase_overridden || s?.low_intent_noise?.low_intent_phrase_overridden) && (
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
+                                Preserved: {signal.low_intent_noise?.override_reason || s?.low_intent_noise?.override_reason}
+                            </span>
                         )}
 
                         <span className="text-slate-500 font-mono text-[10px]" title="Signal ID">{signal.signal_id}</span>
