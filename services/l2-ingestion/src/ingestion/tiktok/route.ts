@@ -64,6 +64,25 @@ export async function routeTikTokHarvest() {
 
                 } catch (rtceErr: any) {
                     console.error(`Downstream processing failed for ${item.signal_id}: ${rtceErr.message}`);
+                    
+                    // FALLBACK ROUTING: Persist signal to Core API using standard governance route
+                    try {
+                        const fallbackQueue = bundle.governance_route?.queue || 'low_risk';
+                        console.log(`[RTCE Fallback] Attempting persistence for ${item.signal_id} with fallback queue: ${fallbackQueue}`);
+                        
+                        const coreRes = await axios.post(`${CORE_API_URL}/admin/signals`, {
+                            signal_id: item.signal_id,
+                            correlation_id: item.correlation_id,
+                            structured_post: {
+                                ...bundle,
+                                governance_route: { queue: fallbackQueue },
+                                signal_score: { score: 10 } // Default for S12
+                            }
+                        });
+                        console.log(`[Core Fallback] Persistence for ${item.signal_id}: ${coreRes.status}`);
+                    } catch (persistErr: any) {
+                        console.error(`Core Fallback persistence failed for ${item.signal_id}: ${persistErr.message}`);
+                    }
                 }
 
 

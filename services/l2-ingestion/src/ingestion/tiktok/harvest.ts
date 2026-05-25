@@ -36,7 +36,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
     const guardrailsPath = path.join(rootDir, 'config', 'discovery', 'guardrails.json');
     let guardrails = {
         max_requests_per_cycle: 10,
-        max_pages_per_query: 3,
+        max_pages_per_query: 1, // Only 1 query per cycle for credit optimization
         max_signals_pre_cap: 75,
         min_rate_limit_remaining: 5,
         backoff_ms: 1000,
@@ -56,7 +56,8 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
     const windowLabel = cycle === 1 ? "0-24h" : (cycle === 2 ? "24h-48h" : "48h-72h");
 
     let requestsMade = 0;
-    const pages = Array.from({ length: guardrails.max_pages_per_query }, (_, i) => i + 1);
+    // Set pages array to only [1] to avoid redundant paginated queries
+    const pages = [1];
 
     for (const page of pages) {
         const currentDuration = Date.now() - cycleStartTime;
@@ -84,7 +85,7 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
             const profileInput = {
                 profiles: accounts.map(acc => acc.startsWith('@') ? acc : `@${acc.split('@').pop()}`),
                 resultsPerPage: 25,
-                shouldScrapeComments: true
+                shouldScrapeComments: false // Optimize credit usage: do not scrape comments
             };
             try {
                 const profileRun = await client.actor(actorId).call(profileInput);
@@ -99,11 +100,12 @@ export async function fetchTikTokSignals(hashtags: string[], maxSignals: number,
         }
 
         if (hashtags && hashtags.length > 0 && combinedItems.length < guardrails.max_signals_pre_cap) {
+            // Dynamically calculate optimal results per hashtag to fetch ~60 total raw posts in a single request
+            const dynamicResultsPerPage = Math.max(3, Math.ceil(75 / hashtags.length));
             const hashtagInput = {
                 hashtags: hashtags,
-                resultsPerPage: 25,
-                page: page,
-                shouldScrapeComments: true
+                resultsPerPage: dynamicResultsPerPage,
+                shouldScrapeComments: false // Optimize credit usage: do not scrape comments
             };
             try {
                 const hashtagRun = await client.actor(actorId).call(hashtagInput);
