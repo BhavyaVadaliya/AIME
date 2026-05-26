@@ -7,7 +7,9 @@ export type IntentCategory =
   | 'excluded_low_intent' 
   | 'seller_candidate' 
   | 'promoter_candidate' 
-  | 'prospect_candidate';
+  | 'prospect_candidate'
+  | 'commercial_intent_candidate'
+  | 'creator_marketing_candidate';
 
 export interface IntentRefinementResult {
   category: IntentCategory;
@@ -17,12 +19,166 @@ export interface IntentRefinementResult {
 }
 
 /**
- * Deterministic Intent Refinement Helper - S13-T02 Calibration.
+ * Deterministic Intent Refinement Helper - S13-T02 & S13-T08 Calibration.
  * Inspects raw text against configured phrase lists, seller contamination rules, and prospect preservation safeguards.
  */
 export function refineIntent(text: string, signalId: string): IntentRefinementResult {
-  const t = text.toLowerCase();
+  const t = text.toLowerCase().replace(/’/g, "'");
   
+  // Word boundary pattern matcher to prevent false positive short word matches (like 'rn' in 'burned')
+  const matchPattern = (textStr: string, pattern: string): boolean => {
+    if (pattern.length <= 3) {
+      const regex = new RegExp(`\\b${pattern}s?\\b`, 'i');
+      return regex.test(textStr);
+    }
+    return textStr.includes(pattern);
+  };
+
+  // --- S13-T08 Dictionaries ---
+  const boostDicts: Record<string, string[]> = {
+    self_referential_intent: ["i want to", "i'm trying to", "i am trying to", "i'm looking to", "i am looking to", "i'm interested in", "i am interested in", "i've been thinking about", "i have been thinking about", "i'm considering", "i am considering", "i'm exploring", "i am exploring"],
+    frustration_language: ["burned out", "burnt out", "frustrated", "stuck", "overwhelmed", "tired of", "need a change", "can't keep doing this", "not sure what to do", "struggling with"],
+    recommendation_seeking: ["any recommendations", "what should i do", "where should i start", "what worked for you", "does anyone recommend", "any advice", "recommend a course", "recommend a certification"],
+    help_seeking: ["need help", "looking for advice", "can someone help", "trying to figure out", "not sure where to start", "help me understand", "need guidance"],
+    career_transition_language: ["career change", "career transition", "switch careers", "leaving bedside", "leave bedside", "leaving clinical", "new career path", "alternative career", "transition into nutrition"],
+    exploratory_curiosity: ["thinking about", "considering", "curious about", "looking into", "exploring options", "wondering if", "is it worth it", "worth the investment"]
+  };
+
+  const suppressionDicts = [
+    "link in bio", "dm me", "message me", "comment info", "comment guide", "tap the link", "bio link",
+    "join my course", "join my program", "enroll now", "sign up now", "limited spots", "apply now", "book a call", "reserve your spot",
+    "follow for more", "my students", "my clients", "my mentorship", "my coaching program", "my course", "my offer",
+    "high ticket coaching", "scale your coaching business", "launch your coaching business", "start your coaching business", "become certified today", "launch your nutrition business"
+  ];
+
+  const matchedBoostCategories: string[] = [];
+  const matchedTags: string[] = [];
+  let matchedBoostPattern = "";
+  let matchedBoostCategory = "";
+
+  for (const [category, phrases] of Object.entries(boostDicts)) {
+    const matchedPhrase = phrases.find(p => matchPattern(t, p));
+    if (matchedPhrase) {
+      matchedBoostCategories.push(category);
+      matchedTags.push(category);
+      if (!matchedBoostPattern) {
+        matchedBoostPattern = matchedPhrase;
+        matchedBoostCategory = category;
+      }
+    }
+  }
+
+  const matchedSuppression = suppressionDicts.find(p => matchPattern(t, p));
+
+  if (matchedBoostCategories.length > 0 && matchedSuppression) {
+    // Mixed Intent handling
+    const personalExplorationPatterns = [
+      "i'm a", "i'm an", "i am a", "i am an", "i'm", "i am", "how do i", "how can i", "how can a", "i want", "how to transition",
+      "should i", "what ceu should i", "what credential should i", "interested in", "looking for", "want to", "my career", "study for my", "for my own",
+      "how to become", "want a side", "changing careers", "change careers"
+    ];
+    const hasSelfReferential = matchedBoostCategories.includes("self_referential_intent") || personalExplorationPatterns.some(p => t.includes(p));
+
+    if (hasSelfReferential) {
+      console.log(JSON.stringify({
+        event: "commercial_intent_conflict_resolved",
+        signal_id: signalId,
+        resolution: "prospect_preserved",
+        reason: "self_referential_language",
+        status: "ok"
+      }));
+
+      console.log(JSON.stringify({
+        event: "commercial_intent_detected",
+        signal_id: signalId,
+        matched_category: matchedBoostCategory,
+        matched_pattern: matchedBoostPattern,
+        status: "ok"
+      }));
+
+      matchedTags.push("commercial_intent_candidate");
+      if (matchedBoostCategories.length >= 2) {
+        matchedTags.push("commercial_intent_multi_signal_boost");
+      }
+
+      return {
+        category: 'commercial_intent_candidate',
+        matched_priority_pattern: matchedBoostPattern,
+        matched_tags: matchedTags
+      };
+    } else {
+      console.log(JSON.stringify({
+        event: "commercial_intent_conflict_resolved",
+        signal_id: signalId,
+        resolution: "seller_suppressed",
+        reason: "outbound_promotion_language",
+        status: "ok"
+      }));
+
+      const supTags = ["creator_marketing_candidate", "commercial_seller_suppressed", "seller_candidate"];
+      return {
+        category: 'creator_marketing_candidate',
+        matched_exclusion_pattern: matchedSuppression,
+        matched_tags: supTags
+      };
+    }
+  }
+
+  if (matchedBoostCategories.length > 0) {
+    // Pure commercial boost
+    console.log(JSON.stringify({
+      event: "commercial_intent_detected",
+      signal_id: signalId,
+      matched_category: matchedBoostCategory,
+      matched_pattern: matchedBoostPattern,
+      status: "ok"
+    }));
+
+    matchedTags.push("commercial_intent_candidate");
+    if (matchedBoostCategories.length >= 2) {
+      matchedTags.push("commercial_intent_multi_signal_boost");
+      console.log(JSON.stringify({
+        event: "commercial_intent_multi_signal_boost_applied",
+        signal_id: signalId,
+        matched_categories: matchedBoostCategories,
+        score_floor: 8,
+        priority_floor: "HIGH",
+        status: "ok"
+      }));
+    } else {
+      console.log(JSON.stringify({
+        event: "commercial_intent_boost_applied",
+        signal_id: signalId,
+        score_floor: 6,
+        priority_floor: "MEDIUM",
+        status: "ok"
+      }));
+    }
+
+    return {
+      category: 'commercial_intent_candidate',
+      matched_priority_pattern: matchedBoostPattern,
+      matched_tags: matchedTags
+    };
+  }
+
+  if (matchedSuppression) {
+    // Pure promoter/creator suppression
+    console.log(JSON.stringify({
+      event: "creator_marketing_suppressed",
+      signal_id: signalId,
+      matched_pattern: matchedSuppression,
+      status: "ok"
+    }));
+
+    const supTags = ["creator_marketing_candidate", "commercial_seller_suppressed", "seller_candidate"];
+    return {
+      category: 'creator_marketing_candidate',
+      matched_exclusion_pattern: matchedSuppression,
+      matched_tags: supTags
+    };
+  }
+
   // Load config
   const configPath = path.resolve(__dirname, '..', '..', '..', '..', '..', 'config', 'ingestion', 'tiktok_scope.json');
   let config: any = {};
@@ -55,15 +211,6 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
     "start your coaching business",
     "launch your nutrition business"
   ];
-
-  // Word boundary pattern matcher to prevent false positive short word matches (like 'rn' in 'burned')
-  const matchPattern = (text: string, pattern: string): boolean => {
-    if (pattern.length <= 3) {
-      const regex = new RegExp(`\\b${pattern}s?\\b`, 'i');
-      return regex.test(text);
-    }
-    return text.includes(pattern);
-  };
 
   // Deterministic S13-T02 Category Dictionaries
   const categoryA_patterns = [

@@ -63,8 +63,11 @@ export class PriorityTierMapper {
      * 3. Fallback to category/type rules
      */
     mapTier(signalId: string, classification: SignalClassification, score?: number): PriorityTier {
-        // S13-T01 Contamination Visibility Deprioritization
-        if (classification.context_tags?.includes('seller_candidate') || classification.context_tags?.includes('promoter_candidate')) {
+        // S13-T01 & S13-T08 Contamination Visibility Deprioritization
+        if (classification.context_tags?.includes('seller_candidate') || 
+            classification.context_tags?.includes('promoter_candidate') ||
+            classification.context_tags?.includes('creator_marketing_candidate') ||
+            classification.context_tags?.includes('commercial_seller_suppressed')) {
             console.log(JSON.stringify({
                 event: "seller_candidate_deprioritized",
                 timestamp: new Date().toISOString(),
@@ -131,6 +134,15 @@ export class PriorityTierMapper {
         // S13-T02 Prospect Preservation & Multi-Signal Boost
         if (classification.context_tags?.includes('prospect_candidate')) {
             if (classification.context_tags?.includes('multi_signal_boost')) {
+                tier = 'HIGH';
+            } else if (tier === 'LOW') {
+                tier = 'MEDIUM';
+            }
+        }
+
+        // S13-T08 Commercial Intent Preservation & Multi-Signal Boost
+        if (classification.context_tags?.includes('commercial_intent_candidate')) {
+            if (classification.context_tags?.includes('commercial_intent_multi_signal_boost')) {
                 tier = 'HIGH';
             } else if (tier === 'LOW') {
                 tier = 'MEDIUM';

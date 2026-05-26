@@ -81,8 +81,11 @@ export class SignalScorer {
 
         let score = category_weight + type_adjustment + pattern_boost;
 
-        // S13-T01 Contamination Qualification Weighting Calibration & S13-T02 Prospect Elevation / Boost
-        if (tags.includes('seller_candidate') || tags.includes('promoter_candidate')) {
+        // S13-T01 & S13-T08 Contamination Qualification Weighting Calibration & S13-T02 Prospect Elevation / Boost
+        if (tags.includes('seller_candidate') || 
+            tags.includes('promoter_candidate') ||
+            tags.includes('creator_marketing_candidate') ||
+            tags.includes('commercial_seller_suppressed')) {
             score = 1; // Drastically reduce qualification weighting
         } else if (tags.includes('prospect_candidate')) {
             // S13-T02 Prospect Preservation & Multi-Signal Boost
@@ -101,6 +104,14 @@ export class SignalScorer {
                 priority_floor: priorityFloor,
                 status: "ok"
             }));
+        } else if (tags.includes('commercial_intent_candidate')) {
+            // S13-T08 Commercial Intent Elevation & Multi-Signal Boost
+            const hasBoost = tags.includes('commercial_intent_multi_signal_boost');
+            const scoreFloor = hasBoost ? 8 : 6;
+
+            if (score < scoreFloor) {
+                score = scoreFloor;
+            }
         }
 
         // Traceability Logging

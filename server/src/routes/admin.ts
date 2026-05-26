@@ -177,7 +177,9 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
         "side_income_intent",
         "career_transition_intent",
         "certification_interest",
-        "clinical_advancement_intent"
+        "clinical_advancement_intent",
+        "commercial_intent_candidate",
+        "commercial_intent_multi_signal_boost"
       ];
       for (const st of strongTags) {
         if (tags.includes(st)) {

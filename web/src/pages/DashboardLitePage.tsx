@@ -863,6 +863,25 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                             </span>
                         )}
 
+                        {/* S13-T08 Commercial Intent Badges */}
+                        {(s?.classification?.context_tags?.includes('commercial_intent_multi_signal_boost') || signal.context_tags?.includes('commercial_intent_multi_signal_boost')) && (
+                            <span className="px-2 py-0.5 bg-amber-500/15 text-amber-300 border border-amber-500/35 rounded text-[10px] font-black uppercase tracking-wider backdrop-blur-md animate-pulse">
+                                Multi-Intent Boost
+                            </span>
+                        )}
+                        {!(s?.classification?.context_tags?.includes('commercial_intent_multi_signal_boost') || signal.context_tags?.includes('commercial_intent_multi_signal_boost')) && 
+                         (s?.classification?.context_tags?.includes('commercial_intent_candidate') || signal.context_tags?.includes('commercial_intent_candidate')) && (
+                            <span className="px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/30 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
+                                Commercial Intent
+                            </span>
+                        )}
+                        {(s?.classification?.context_tags?.includes('commercial_seller_suppressed') || signal.context_tags?.includes('commercial_seller_suppressed') ||
+                          s?.classification?.context_tags?.includes('creator_marketing_candidate') || signal.context_tags?.includes('creator_marketing_candidate')) && (
+                            <span className="px-2 py-0.5 bg-slate-950/60 text-slate-500 border border-slate-800/80 rounded text-[10px] font-bold uppercase tracking-wider line-through opacity-65">
+                                Suppressed Promoter
+                            </span>
+                        )}
+
                         <span className="text-slate-500 font-mono text-[10px]" title="Signal ID">{signal.signal_id}</span>
                         <div className="h-1 w-1 rounded-full bg-slate-700" />
                         <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider" title={`Original classification: ${s?.classification.primary_category}`}>
