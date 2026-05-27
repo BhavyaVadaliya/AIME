@@ -863,22 +863,31 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                             </span>
                         )}
 
-                        {/* S13-T08 Commercial Intent Badges */}
-                        {(s?.classification?.context_tags?.includes('commercial_intent_multi_signal_boost') || signal.context_tags?.includes('commercial_intent_multi_signal_boost')) && (
+                        {/* S13-T08 Commercial/Personal Intent Badges */}
+                        {(s?.classification?.context_tags?.includes('multi_signal_exploration_boost') || signal.context_tags?.includes('multi_signal_exploration_boost') ||
+                          s?.classification?.context_tags?.includes('commercial_intent_multi_signal_boost') || signal.context_tags?.includes('commercial_intent_multi_signal_boost')) && (
                             <span className="px-2 py-0.5 bg-amber-500/15 text-amber-300 border border-amber-500/35 rounded text-[10px] font-black uppercase tracking-wider backdrop-blur-md animate-pulse">
-                                Multi-Intent Boost
+                                Multi-Signal Boost
                             </span>
                         )}
-                        {!(s?.classification?.context_tags?.includes('commercial_intent_multi_signal_boost') || signal.context_tags?.includes('commercial_intent_multi_signal_boost')) && 
-                         (s?.classification?.context_tags?.includes('commercial_intent_candidate') || signal.context_tags?.includes('commercial_intent_candidate')) && (
+                        {!(s?.classification?.context_tags?.includes('multi_signal_exploration_boost') || signal.context_tags?.includes('multi_signal_exploration_boost') ||
+                           s?.classification?.context_tags?.includes('commercial_intent_multi_signal_boost') || signal.context_tags?.includes('commercial_intent_multi_signal_boost')) && 
+                         (s?.classification?.context_tags?.includes('personal_exploration_candidate') || signal.context_tags?.includes('personal_exploration_candidate') ||
+                          s?.classification?.context_tags?.includes('help_seeking_candidate') || signal.context_tags?.includes('help_seeking_candidate') ||
+                          s?.classification?.context_tags?.includes('commercial_intent_candidate') || signal.context_tags?.includes('commercial_intent_candidate')) && (
                             <span className="px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/30 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-md">
-                                Commercial Intent
+                                Personal Exploration
                             </span>
                         )}
                         {(s?.classification?.context_tags?.includes('commercial_seller_suppressed') || signal.context_tags?.includes('commercial_seller_suppressed') ||
-                          s?.classification?.context_tags?.includes('creator_marketing_candidate') || signal.context_tags?.includes('creator_marketing_candidate')) && (
+                          s?.classification?.context_tags?.includes('creator_marketing_candidate') || signal.context_tags?.includes('creator_marketing_candidate') ||
+                          s?.classification?.context_tags?.includes('creator_candidate') || signal.context_tags?.includes('creator_candidate') ||
+                          s?.classification?.context_tags?.includes('seller_candidate') || signal.context_tags?.includes('seller_candidate') ||
+                          s?.classification?.context_tags?.includes('outbound_marketing_candidate') || signal.context_tags?.includes('outbound_marketing_candidate') ||
+                          s?.classification?.context_tags?.includes('audience_builder_candidate') || signal.context_tags?.includes('audience_builder_candidate') ||
+                          s?.classification?.context_tags?.includes('coaching_promotion_candidate') || signal.context_tags?.includes('coaching_promotion_candidate')) && (
                             <span className="px-2 py-0.5 bg-slate-950/60 text-slate-500 border border-slate-800/80 rounded text-[10px] font-bold uppercase tracking-wider line-through opacity-65">
-                                Suppressed Promoter
+                                Suppressed Creator
                             </span>
                         )}
 

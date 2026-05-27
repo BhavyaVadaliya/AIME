@@ -35,121 +35,116 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
   };
 
   // --- S13-T08 Dictionaries ---
-  const boostDicts: Record<string, string[]> = {
-    self_referential_intent: ["i want to", "i'm trying to", "i am trying to", "i'm looking to", "i am looking to", "i'm interested in", "i am interested in", "i've been thinking about", "i have been thinking about", "i'm considering", "i am considering", "i'm exploring", "i am exploring"],
-    frustration_language: ["burned out", "burnt out", "frustrated", "stuck", "overwhelmed", "tired of", "need a change", "can't keep doing this", "not sure what to do", "struggling with"],
-    recommendation_seeking: ["any recommendations", "what should i do", "where should i start", "what worked for you", "does anyone recommend", "any advice", "recommend a course", "recommend a certification"],
-    help_seeking: ["need help", "looking for advice", "can someone help", "trying to figure out", "not sure where to start", "help me understand", "need guidance"],
-    career_transition_language: ["career change", "career transition", "switch careers", "leaving bedside", "leave bedside", "leaving clinical", "new career path", "alternative career", "transition into nutrition"],
-    exploratory_curiosity: ["thinking about", "considering", "curious about", "looking into", "exploring options", "wondering if", "is it worth it", "worth the investment"]
+  const creatorDicts: Record<string, string[]> = {
+    funnel_promotion: ["link in bio", "book a call", "join my course", "join my program", "apply now", "reserve your spot", "enroll now", "sign up now"],
+    audience_building: ["follow for more", "my students", "my clients", "my mentorship", "my coaching program", "my course", "my offer"],
+    authority_broadcasting: ["i teach people how to", "i help nurses build", "my proven system", "my framework", "my methodology"],
+    outbound_cta: ["dm me", "message me", "comment info", "comment guide", "send me a dm", "tap the link", "bio link"]
   };
 
-  const suppressionDicts = [
-    "link in bio", "dm me", "message me", "comment info", "comment guide", "tap the link", "bio link",
-    "join my course", "join my program", "enroll now", "sign up now", "limited spots", "apply now", "book a call", "reserve your spot",
-    "follow for more", "my students", "my clients", "my mentorship", "my coaching program", "my course", "my offer",
-    "high ticket coaching", "scale your coaching business", "launch your coaching business", "start your coaching business", "become certified today", "launch your nutrition business"
-  ];
+  const personalDicts: Record<string, string[]> = {
+    self_referential: ["i'm thinking about", "i am thinking about", "i'm considering", "i am considering", "i'm trying to", "i am trying to", "i'm looking for", "i am looking for", "i want to"],
+    uncertainty_guidance: ["not sure where to start", "what should i do", "need advice", "looking for advice", "wondering if", "can someone help"],
+    transition_burnout: ["burned out", "burnt out", "need a change", "leave bedside", "leaving bedside", "career transition", "alternative career", "switch careers"],
+    recommendation_seeking: ["any recommendations", "what worked for you", "does anyone recommend", "recommend a course", "recommend a certification"],
+    curiosity_exploration: ["thinking about", "considering", "looking into", "curious about", "exploring options", "is it worth it"]
+  };
 
-  const matchedBoostCategories: string[] = [];
-  const matchedTags: string[] = [];
-  let matchedBoostPattern = "";
-  let matchedBoostCategory = "";
-
-  for (const [category, phrases] of Object.entries(boostDicts)) {
-    const matchedPhrase = phrases.find(p => matchPattern(t, p));
-    if (matchedPhrase) {
-      matchedBoostCategories.push(category);
-      matchedTags.push(category);
-      if (!matchedBoostPattern) {
-        matchedBoostPattern = matchedPhrase;
-        matchedBoostCategory = category;
+  // STEP 1: Source-type qualification
+  const matchedCreatorPatterns: { category: string; pattern: string }[] = [];
+  for (const [catName, phrases] of Object.entries(creatorDicts)) {
+    for (const phrase of phrases) {
+      if (matchPattern(t, phrase)) {
+        matchedCreatorPatterns.push({ category: catName, pattern: phrase });
       }
     }
   }
 
-  const matchedSuppression = suppressionDicts.find(p => matchPattern(t, p));
-
-  if (matchedBoostCategories.length > 0 && matchedSuppression) {
-    // Mixed Intent handling
-    const personalExplorationPatterns = [
-      "i'm a", "i'm an", "i am a", "i am an", "i'm", "i am", "how do i", "how can i", "how can a", "i want", "how to transition",
-      "should i", "what ceu should i", "what credential should i", "interested in", "looking for", "want to", "my career", "study for my", "for my own",
-      "how to become", "want a side", "changing careers", "change careers"
-    ];
-    const hasSelfReferential = matchedBoostCategories.includes("self_referential_intent") || personalExplorationPatterns.some(p => t.includes(p));
-
-    if (hasSelfReferential) {
-      console.log(JSON.stringify({
-        event: "commercial_intent_conflict_resolved",
-        signal_id: signalId,
-        resolution: "prospect_preserved",
-        reason: "self_referential_language",
-        status: "ok"
-      }));
-
-      console.log(JSON.stringify({
-        event: "commercial_intent_detected",
-        signal_id: signalId,
-        matched_category: matchedBoostCategory,
-        matched_pattern: matchedBoostPattern,
-        status: "ok"
-      }));
-
-      matchedTags.push("commercial_intent_candidate");
-      if (matchedBoostCategories.length >= 2) {
-        matchedTags.push("commercial_intent_multi_signal_boost");
+  const matchedPersonalPatterns: { category: string; pattern: string }[] = [];
+  for (const [catName, phrases] of Object.entries(personalDicts)) {
+    for (const phrase of phrases) {
+      if (matchPattern(t, phrase)) {
+        matchedPersonalPatterns.push({ category: catName, pattern: phrase });
       }
-
-      return {
-        category: 'commercial_intent_candidate',
-        matched_priority_pattern: matchedBoostPattern,
-        matched_tags: matchedTags
-      };
-    } else {
-      console.log(JSON.stringify({
-        event: "commercial_intent_conflict_resolved",
-        signal_id: signalId,
-        resolution: "seller_suppressed",
-        reason: "outbound_promotion_language",
-        status: "ok"
-      }));
-
-      const supTags = ["creator_marketing_candidate", "commercial_seller_suppressed", "seller_candidate"];
-      return {
-        category: 'creator_marketing_candidate',
-        matched_exclusion_pattern: matchedSuppression,
-        matched_tags: supTags
-      };
     }
   }
 
-  if (matchedBoostCategories.length > 0) {
-    // Pure commercial boost
+  // Telemetry Step 1
+  if (matchedCreatorPatterns.length > 0) {
     console.log(JSON.stringify({
-      event: "commercial_intent_detected",
-      signal_id: signalId,
-      matched_category: matchedBoostCategory,
-      matched_pattern: matchedBoostPattern,
+      event: "creator_source_detected",
+      matched_pattern: matchedCreatorPatterns[0].pattern,
+      status: "ok"
+    }));
+  }
+
+  if (matchedPersonalPatterns.length > 0) {
+    console.log(JSON.stringify({
+      event: "personal_exploration_detected",
+      matched_pattern: matchedPersonalPatterns[0].pattern,
+      status: "ok"
+    }));
+  }
+
+  // STEP 2 & STEP 5: Creator/seller suppression & Visibility calibration
+  const isCreatorDominated = matchedCreatorPatterns.length > 0 && matchedPersonalPatterns.length === 0;
+
+  if (isCreatorDominated) {
+    console.log(JSON.stringify({
+      event: "creator_source_suppressed",
+      reason: "outbound_marketing_dominance",
       status: "ok"
     }));
 
-    matchedTags.push("commercial_intent_candidate");
-    if (matchedBoostCategories.length >= 2) {
-      matchedTags.push("commercial_intent_multi_signal_boost");
+    const supTags = [
+      "creator_candidate",
+      "seller_candidate",
+      "outbound_marketing_candidate",
+      "audience_builder_candidate",
+      "coaching_promotion_candidate",
+      "commercial_seller_suppressed"
+    ];
+
+    return {
+      category: 'creator_marketing_candidate',
+      matched_exclusion_pattern: matchedCreatorPatterns[0].pattern,
+      matched_tags: supTags
+    };
+  }
+
+  // STEP 3 & STEP 4: Mixed intent override, personal elevation, and commercial intent refinement
+  const hasMixedIntent = matchedCreatorPatterns.length > 0 && matchedPersonalPatterns.length > 0;
+  if (hasMixedIntent) {
+    console.log(JSON.stringify({
+      event: "source_type_conflict_resolved",
+      resolution: "personal_exploration_preserved",
+      status: "ok"
+    }));
+  }
+
+  const hasPersonalExploration = matchedPersonalPatterns.length > 0;
+  if (hasPersonalExploration) {
+    const matchedCategories = new Set(matchedPersonalPatterns.map(p => p.category));
+    const isMultiSignal = matchedCategories.size >= 2;
+
+    const elevationTags = [
+      "personal_exploration_candidate",
+      "help_seeking_candidate",
+      "transition_candidate",
+      "recommendation_seeking_candidate",
+      "commercial_intent_candidate"
+    ];
+
+    if (isMultiSignal) {
+      elevationTags.push("multi_signal_exploration_boost");
       console.log(JSON.stringify({
-        event: "commercial_intent_multi_signal_boost_applied",
-        signal_id: signalId,
-        matched_categories: matchedBoostCategories,
-        score_floor: 8,
+        event: "multi_signal_exploration_boost_applied",
         priority_floor: "HIGH",
         status: "ok"
       }));
     } else {
       console.log(JSON.stringify({
-        event: "commercial_intent_boost_applied",
-        signal_id: signalId,
-        score_floor: 6,
+        event: "personal_user_elevated",
         priority_floor: "MEDIUM",
         status: "ok"
       }));
@@ -157,25 +152,8 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
 
     return {
       category: 'commercial_intent_candidate',
-      matched_priority_pattern: matchedBoostPattern,
-      matched_tags: matchedTags
-    };
-  }
-
-  if (matchedSuppression) {
-    // Pure promoter/creator suppression
-    console.log(JSON.stringify({
-      event: "creator_marketing_suppressed",
-      signal_id: signalId,
-      matched_pattern: matchedSuppression,
-      status: "ok"
-    }));
-
-    const supTags = ["creator_marketing_candidate", "commercial_seller_suppressed", "seller_candidate"];
-    return {
-      category: 'creator_marketing_candidate',
-      matched_exclusion_pattern: matchedSuppression,
-      matched_tags: supTags
+      matched_priority_pattern: matchedPersonalPatterns[0].pattern,
+      matched_tags: elevationTags
     };
   }
 

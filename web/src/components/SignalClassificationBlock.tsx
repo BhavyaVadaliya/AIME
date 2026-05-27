@@ -46,9 +46,9 @@ export const SignalClassificationBlock: React.FC<{ classification: Classificatio
                                 styles = 'bg-pink-500/10 text-pink-400 border-pink-500/30 font-bold';
                             } else if (tag === 'multi_signal_boost') {
                                 styles = 'bg-amber-500/15 text-amber-300 border-amber-400/40 font-black tracking-wider animate-pulse';
-                            } else if (tag === 'commercial_intent_candidate') {
+                            } else if (tag === 'commercial_intent_candidate' || tag === 'personal_exploration_candidate' || tag === 'help_seeking_candidate' || tag === 'transition_candidate' || tag === 'recommendation_seeking_candidate') {
                                 styles = 'bg-sky-500/10 text-sky-400 border-sky-500/30 font-bold';
-                            } else if (tag === 'commercial_intent_multi_signal_boost') {
+                            } else if (tag === 'commercial_intent_multi_signal_boost' || tag === 'multi_signal_exploration_boost') {
                                 styles = 'bg-amber-500/15 text-amber-300 border-amber-400/40 font-black tracking-wider animate-pulse';
                             } else if (tag === 'self_referential_intent') {
                                 styles = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30';
@@ -70,8 +70,8 @@ export const SignalClassificationBlock: React.FC<{ classification: Classificatio
                                 styles = 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
                             } else if (tag === 'clinical_advancement_intent') {
                                 styles = 'bg-blue-500/10 text-blue-300 border-blue-500/30';
-                            } else if (tag === 'seller_candidate' || tag === 'promoter_candidate' || tag === 'creator_marketing_candidate' || tag === 'commercial_seller_suppressed') {
-                                styles = 'bg-slate-950/60 text-slate-600 border-slate-800/80 line-through opacity-60';
+                            } else if (tag === 'seller_candidate' || tag === 'promoter_candidate' || tag === 'creator_marketing_candidate' || tag === 'commercial_seller_suppressed' || tag === 'creator_candidate' || tag === 'outbound_marketing_candidate' || tag === 'audience_builder_candidate' || tag === 'coaching_promotion_candidate') {
+                                styles = 'bg-slate-955/60 text-slate-600 border-slate-800/80 line-through opacity-60';
                             }
                             return (
                                 <span key={tag} className={`px-2 py-0.5 text-[10px] rounded border transition-all hover:scale-105 duration-200 ${styles}`}>

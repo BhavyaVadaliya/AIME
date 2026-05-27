@@ -64,10 +64,16 @@ export class PriorityTierMapper {
      */
     mapTier(signalId: string, classification: SignalClassification, score?: number): PriorityTier {
         // S13-T01 & S13-T08 Contamination Visibility Deprioritization
-        if (classification.context_tags?.includes('seller_candidate') || 
-            classification.context_tags?.includes('promoter_candidate') ||
-            classification.context_tags?.includes('creator_marketing_candidate') ||
-            classification.context_tags?.includes('commercial_seller_suppressed')) {
+        if (classification.context_tags?.some(t => [
+            'seller_candidate',
+            'promoter_candidate',
+            'creator_marketing_candidate',
+            'commercial_seller_suppressed',
+            'creator_candidate',
+            'outbound_marketing_candidate',
+            'audience_builder_candidate',
+            'coaching_promotion_candidate'
+        ].includes(t))) {
             console.log(JSON.stringify({
                 event: "seller_candidate_deprioritized",
                 timestamp: new Date().toISOString(),
@@ -140,9 +146,16 @@ export class PriorityTierMapper {
             }
         }
 
-        // S13-T08 Commercial Intent Preservation & Multi-Signal Boost
-        if (classification.context_tags?.includes('commercial_intent_candidate')) {
-            if (classification.context_tags?.includes('commercial_intent_multi_signal_boost')) {
+        // S13-T08 Commercial/Personal Intent Preservation & Multi-Signal Boost
+        if (classification.context_tags?.some(t => [
+            'personal_exploration_candidate',
+            'help_seeking_candidate',
+            'commercial_intent_candidate'
+        ].includes(t))) {
+            if (classification.context_tags?.some(t => [
+                'multi_signal_exploration_boost',
+                'commercial_intent_multi_signal_boost'
+            ].includes(t))) {
                 tier = 'HIGH';
             } else if (tier === 'LOW') {
                 tier = 'MEDIUM';

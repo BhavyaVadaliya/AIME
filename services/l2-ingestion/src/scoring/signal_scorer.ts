@@ -81,12 +81,18 @@ export class SignalScorer {
 
         let score = category_weight + type_adjustment + pattern_boost;
 
-        // S13-T01 & S13-T08 Contamination Qualification Weighting Calibration & S13-T02 Prospect Elevation / Boost
-        if (tags.includes('seller_candidate') || 
-            tags.includes('promoter_candidate') ||
-            tags.includes('creator_marketing_candidate') ||
-            tags.includes('commercial_seller_suppressed')) {
-            score = 1; // Drastically reduce qualification weighting
+        // S13-T01 & S13-T08 Contamination Qualification Weighting Calibration & S13-T02/T08 Prospect/Personal Elevation / Boost
+        if (tags.some(t => [
+            'seller_candidate',
+            'promoter_candidate',
+            'creator_marketing_candidate',
+            'commercial_seller_suppressed',
+            'creator_candidate',
+            'outbound_marketing_candidate',
+            'audience_builder_candidate',
+            'coaching_promotion_candidate'
+        ].includes(t))) {
+            score = 1; // Drastically reduce qualification weighting / cap at 1 or 2
         } else if (tags.includes('prospect_candidate')) {
             // S13-T02 Prospect Preservation & Multi-Signal Boost
             const hasBoost = tags.includes('multi_signal_boost');
@@ -104,9 +110,16 @@ export class SignalScorer {
                 priority_floor: priorityFloor,
                 status: "ok"
             }));
-        } else if (tags.includes('commercial_intent_candidate')) {
-            // S13-T08 Commercial Intent Elevation & Multi-Signal Boost
-            const hasBoost = tags.includes('commercial_intent_multi_signal_boost');
+        } else if (tags.some(t => [
+            'personal_exploration_candidate',
+            'help_seeking_candidate',
+            'commercial_intent_candidate'
+        ].includes(t))) {
+            // S13-T08 Personal Exploration Intent Elevation & Multi-Signal Boost
+            const hasBoost = tags.some(t => [
+                'multi_signal_exploration_boost',
+                'commercial_intent_multi_signal_boost'
+            ].includes(t));
             const scoreFloor = hasBoost ? 8 : 6;
 
             if (score < scoreFloor) {

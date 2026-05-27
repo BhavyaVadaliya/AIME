@@ -179,7 +179,10 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
         "certification_interest",
         "clinical_advancement_intent",
         "commercial_intent_candidate",
-        "commercial_intent_multi_signal_boost"
+        "commercial_intent_multi_signal_boost",
+        "personal_exploration_candidate",
+        "help_seeking_candidate",
+        "multi_signal_exploration_boost"
       ];
       for (const st of strongTags) {
         if (tags.includes(st)) {
