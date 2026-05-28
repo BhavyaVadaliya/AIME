@@ -1,7 +1,25 @@
 // AIME Extension Bridge Utility
 // Handles communication between the Dashboard and the Chrome Extension
 
-const EXTENSION_ID = 'jkvputvonklwobezlxav'; // This will be updated with actual ID during local testing
+const getExtensionId = (): string => {
+    if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlId = urlParams.get('extensionId');
+        if (urlId && urlId.length === 32) {
+            localStorage.setItem('AIME_EXTENSION_ID', urlId);
+            return urlId;
+        }
+        
+        const storedId = localStorage.getItem('AIME_EXTENSION_ID');
+        if (storedId && storedId.length === 32) {
+            return storedId;
+        }
+    }
+    // Fallback: Valid 32-character standard length ID structure
+    return 'jkvputvonklwobezlxavjkvputvonklw';
+};
+
+const EXTENSION_ID = getExtensionId();
 
 export interface ExtensionResponse {
     status: 'payload_received' | 'payload_invalid' | 'session_staged' | 'tab_opened' | 'payload_expired' | 'unsupported_execution_target' | 'extension_unavailable';

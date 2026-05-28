@@ -89,6 +89,11 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
 
     console.log('[AIME] Message received from dashboard:', message);
 
+    if (message.type === 'PING') {
+        sendResponse({ status: 'ok', version: '0.1.0' });
+        return;
+    }
+
     if (message.type === 'START_EXECUTION_SESSION') {
         const payload = message.payload;
         const validation = validatePayload(payload);
@@ -122,7 +127,31 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             });
         });
 
-
         return true; // Keep channel open for async sendResponse
+    }
+
+    if (message.type === 'GET_SESSION_STATUS') {
+        chrome.storage.local.get(message.session_id, (result) => {
+            sendResponse(result[message.session_id] || { status: 'extension_unavailable' });
+        });
+        return true;
+    }
+
+    if (message.type === 'GET_ACTIVE_SESSION_IDENTITY') {
+        chrome.storage.local.get(message.session_id, (result) => {
+            const session = result[message.session_id];
+            if (session && session.tab_id) {
+                chrome.tabs.sendMessage(session.tab_id, { type: 'GET_ACTIVE_IDENTITY' }, (res) => {
+                    if (chrome.runtime.lastError) {
+                        sendResponse({ status: 'script_not_attached' });
+                    } else {
+                        sendResponse({ status: res?.identity ? 'connected' : 'not_detected', username: res?.identity });
+                    }
+                });
+            } else {
+                sendResponse({ status: 'no_tab' });
+            }
+        });
+        return true;
     }
 });
