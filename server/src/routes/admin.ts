@@ -737,128 +737,160 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
 
 /**
  * POST /admin/governance/scan
- * Utility patch to trigger the existing TikTok harvest process.
- * Reuses the existing ingestion service endpoint.
+ * Directly triggers Apify TikTok scraper and persists up to 50 new signals to Supabase.
+ * No dependency on the l2-ingestion service — self-contained.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
-    const isRender = !!process.env.RENDER;
-    const isLocal = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+    const apifyToken = process.env.APIFY_API_TOKEN;
+    if (!apifyToken) {
+        return res.status(500).json({ error: "APIFY_API_TOKEN not configured on server" });
+    }
 
-    
-    // Discovery List: Try multiple hostnames and paths to be absolutely sure we connect
-    const hostnames = isRender ? ['l2-ingestion', 'l2-ingestion-s7', 'aime-l2-ingestion', 'localhost'] : ['localhost'];
-    const ports = ['3001', '10000', '80'];
-    const paths = ['/v1/harvest', '/v1/ingestion/tiktok/harvest', '/harvest'];
-    
-    const urlsToTry: string[] = [];
-    
-    // 0. SPECIFIC PRODUCTION TARGETS (Highest Priority)
-    urlsToTry.push(`https://l2-ingestion.onrender.com/v1/harvest`);
-    urlsToTry.push(`https://l2-ingestion.onrender.com/harvest`);
-    
-    // 1. Internal hostnames first (preferred for Render efficiency)
-    for (const h of hostnames) {
-        for (const p of ports) {
-            for (const path of paths) {
-                urlsToTry.push(`http://${h}:${p}${path}`);
-                if (p === '80') urlsToTry.push(`http://${h}${path}`);
+    // Top 5 most targeted hashtags — focused = better quality, fewer credits used
+    const targetHashtags = ['rd2be', 'dieteticintern', 'registereddietitian', 'nutritioncertification', 'careertransition'];
+    const excludedHashtags = new Set(['weightloss', 'fitnessmotivation', 'gymtok', 'mealprep', 'whatieatinaday', 'fatloss', 'bodybuilding']);
+    const priorityPatterns = ['certification', 'internship', 'salary', 'income', 'rd exam', 'dietetic internship',
+                              'how do i', 'worth it', 'enroll', 'credential', 'how can i', 'should i', 'cost', 'program'];
+
+    try {
+        console.log('[Scan] Triggering Apify TikTok harvest directly...');
+
+        // Apify sync endpoint: runs actor, waits for completion, returns dataset items
+        const actorId = process.env.TIKTOK_ACTOR || 'clockworks~tiktok-scraper';
+        const apifyRes = await axios.post(
+            `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${apifyToken}&format=json`,
+            {
+                hashtags: targetHashtags,
+                resultsPerPage: 15,          // 15/hashtag × 5 hashtags ≈ 75 raw items
+                shouldScrapeComments: false, // Credit optimization: skip comments
+            },
+            { timeout: 180000 } // 3 min max — Apify sync runs can take ~60-90s
+        );
+
+        const rawItems: any[] = Array.isArray(apifyRes.data) ? apifyRes.data : [];
+        console.log(`[Scan] Apify returned ${rawItems.length} raw items`);
+
+        // Dedupe by TikTok post ID
+        const seenIds = new Set<string>();
+        const uniqueItems = rawItems.filter(item => {
+            const id = String(item.id || '');
+            if (!id || seenIds.has(id)) return false;
+            seenIds.add(id);
+            return true;
+        });
+
+        let persisted = 0;
+        let skipped = 0;
+
+        for (const item of uniqueItems) {
+            if (persisted >= 50) break;
+
+            // 1. Language filter — English only
+            const lang = (item.language || item.lang || '').toLowerCase();
+            if (lang && lang !== 'en') { skipped++; continue; }
+
+            // 2. Hashtag exclusion
+            const itemTags: string[] = (Array.isArray(item.hashtags) ? item.hashtags : [])
+                .map((h: any) => (typeof h === 'string' ? h : (h?.name || '')).toLowerCase())
+                .filter(Boolean);
+            if (itemTags.some(h => excludedHashtags.has(h))) { skipped++; continue; }
+
+            // 3. Extract core fields
+            const text: string = item.text || item.desc || '';
+            if (!text.trim()) { skipped++; continue; }
+
+            const author = item.authorMeta || item.author || {};
+            const authorName: string = typeof author === 'string'
+                ? author
+                : (author.uniqueId || author.nickname || '');
+            const authorId: string = typeof author === 'object'
+                ? (author.id || author.secUid || '')
+                : '';
+            const sourceUrl: string = item.webVideoUrl || item.url || '';
+
+            if (!sourceUrl || !authorName) { skipped++; continue; }
+            if (authorName.toLowerCase().includes('synthetic') || authorName.toLowerCase().includes('unknown')) {
+                skipped++; continue;
             }
-        }
-    }
-    
-    // 2. Public URL variations (Derive from current request hostname)
-    const currentHostname = req.hostname;
-    if (currentHostname.includes('.onrender.com')) {
-        const baseSlug = currentHostname.split('.')[0].replace('-core', '').replace('aime-', '');
-        
-        // Try multiple naming patterns common on Render
-        const publicBases = [
-            `https://${baseSlug}-l2-ingestion.onrender.com`,
-            `https://l2-ingestion-${baseSlug}.onrender.com`,
-            `https://${baseSlug}-l2.onrender.com`,
-            `https://l2-${baseSlug}.onrender.com`
-        ];
 
-        for (const base of publicBases) {
-            for (const path of paths) {
-                urlsToTry.push(`${base}${path}`);
-            }
-        }
-    }
+            // 4. Quality scoring
+            const lowerText = text.toLowerCase();
+            const isPriority = priorityPatterns.some(p => lowerText.includes(p));
+            const tier: string = isPriority ? 'HIGH' : ((item.diggCount || 0) > 100 ? 'MEDIUM' : 'LOW');
+            const queue: string = isPriority ? 'higher_risk' : 'low_risk';
+            const score: number = isPriority ? 8 : ((item.diggCount || 0) > 100 ? 5 : 3);
+            const timestamp: string = item.createTime
+                ? new Date(item.createTime * 1000).toISOString()
+                : new Date().toISOString();
 
-    // 3. Fallback to common defaults if no match yet
-    urlsToTry.push(`https://l2-ingestion.onrender.com/v1/harvest`);
+            const signalId = `tiktok-${item.id}-${Date.now().toString(36)}`;
 
-    // 4. Environment variable override (Highest Priority if set)
-    if (process.env.HARVEST_URL) {
-        urlsToTry.unshift(process.env.HARVEST_URL);
-    }
-
-    let lastError: any = null;
-    let successfulUrl = '';
-
-    console.log(`[Admin] Starting Scan Discovery [Render: ${isRender}]. Host: ${currentHostname}. Candidates: ${urlsToTry.length}`);
-
-    for (const url of urlsToTry) {
-        // Skip local URLs if we are running on a live Render site (safety guard)
-        if (isRender && url.includes('localhost') && !isLocal) continue;
-
-        try {
-            console.log(`[Admin] Attempting scan trigger: ${url}`);
-            const response = await axios.get(url, { timeout: 60000 });
-
-
-            
-            // STRICT VALIDATION: Ensure we actually hit the L2 service and not a generic 200 page
-            if (response.data && response.data.status === 'accepted') {
-                successfulUrl = url;
-                console.log(`[Admin] SCAN SUCCESS: Validated trigger via ${url}`);
-                return res.json({ 
-                    status: 'success', 
-                    message: `Scan triggered successfully`,
-                    attempted_url: url,
-                    data: response.data 
+            // 5. Persist to Supabase
+            const { error: insertErr } = await supabase
+                .from('signals')
+                .insert({
+                    signal_id: signalId,
+                    source_url: sourceUrl,
+                    platform: 'tiktok',
+                    username: authorName,
+                    author_id: authorId,
+                    raw_text: text,
+                    structured_post: {
+                        raw_text: text,
+                        classification: {
+                            primary_category: 'PROFESSIONAL_PATHWAY',
+                            signal_type: 'organic_post',
+                            context_tags: itemTags
+                        },
+                        governance_route: { queue },
+                        signal_score: { score },
+                        priority_tier: tier,
+                        source: {
+                            platform: 'tiktok',
+                            username: authorName,
+                            author_id: authorId,
+                            source_url: sourceUrl,
+                            timestamp
+                        }
+                    },
+                    priority_tier: tier,
+                    signal_score: score,
+                    governance_route: queue,
+                    status: 'active'
                 });
-            } else {
-                console.warn(`[Admin] URL ${url} returned 200 but invalid body:`, response.data);
-                throw new Error("Invalid service response body");
-            }
-        } catch (error: any) {
-            lastError = error;
-            console.warn(`[Admin] Failed ${url}: ${error.message} (${error.response?.status || error.code})`);
-            // If it's a 405 (Method Not Allowed), it might expect a POST
-            if (error.response?.status === 405) {
-                try {
-                    console.log(`[Admin] 405 received. Retrying with POST: ${url}`);
-                    const postResponse = await axios.post(url, {}, { timeout: 8000 });
-                    
-                    if (postResponse.data && postResponse.data.status === 'accepted') {
-                        successfulUrl = url;
-                        return res.json({ 
-                            status: 'success', 
-                            message: `Scan triggered successfully via POST`,
-                            attempted_url: url,
-                            data: postResponse.data 
-                        });
-                    }
-                } catch (postError: any) {
-                    console.warn(`[Admin] POST fallback also failed for ${url}`);
+
+            if (insertErr) {
+                if (insertErr.code === '23505') {
+                    skipped++; // Duplicate source_url — expected, skip silently
+                } else {
+                    console.error(`[Scan] Insert error for ${signalId}:`, insertErr.message);
                 }
+            } else {
+                persisted++;
+                console.log(JSON.stringify({ event: 'signal_persisted', signal_id: signalId, tier, score, status: 'ok' }));
             }
         }
-    }
 
-    // If we get here, all attempts failed
-    const errorMsg = lastError?.message || 'All endpoints returned 404 or connection failed';
-    console.error(`[Admin] ALL scan trigger attempts FAILED.`);
-    
-    return res.status(500).json({ 
-        error: "Failed to trigger scan after discovery", 
-        detail: errorMsg,
-        last_attempted_url: urlsToTry[urlsToTry.length - 1],
-        hint: `None of the following URLs worked: ${urlsToTry.join(', ')}. Ensure the L2 Ingestion service is running and has the harvest endpoint enabled.`
-    });
+        console.log(`[Scan] Done. persisted=${persisted} skipped=${skipped} raw=${rawItems.length}`);
+
+        return res.json({
+            status: 'success',
+            message: `Scan complete — ${persisted} new signals ingested.`,
+            data: { batch_size: persisted, raw_fetched: rawItems.length, skipped }
+        });
+
+    } catch (error: any) {
+        console.error('[Scan] Error:', error.message);
+        return res.status(500).json({
+            error: 'Scan failed',
+            detail: error.message,
+            code: error.response?.status || 'N/A'
+        });
+    }
 });
+
+
+
 
 /**
  * GET /admin/logs

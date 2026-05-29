@@ -138,15 +138,35 @@ export const DashboardLitePage: React.FC = () => {
         }
     };
 
-    const handleRunScan = () => {
+    const handleRunScan = async () => {
         if (scanStatus === 'Running') return;
         setScanStatus('Running');
-        // No-op: simulate a brief scan cycle then return to Idle
-        setTimeout(() => {
-            setScanStatus('Complete');
-            setTimeout(() => setScanStatus('Idle'), 2500);
-        }, 1500);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL ||
+                (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://aime-0vwz.onrender.com');
+            const response = await fetch(`${apiUrl}/admin/governance/scan`, { method: 'POST' });
+            const scanData = await response.json();
+
+            if (response.ok && scanData.status === 'success') {
+                const count = scanData.data?.batch_size || 0;
+                setScanStatus('Complete');
+                if (count > 0) {
+                    fetchData(); // Refresh feed with new signals
+                    console.log(`[Scan] ${count} new signals ingested.`);
+                }
+                setTimeout(() => setScanStatus('Idle'), 3000);
+            } else {
+                console.error('[Scan] Failed:', scanData);
+                setScanStatus('Failed');
+                setTimeout(() => setScanStatus('Idle'), 4000);
+            }
+        } catch (error: any) {
+            console.error('[Scan] Network error:', error.message);
+            setScanStatus('Failed');
+            setTimeout(() => setScanStatus('Idle'), 4000);
+        }
     };
+
 
     useEffect(() => {
         fetchData();
