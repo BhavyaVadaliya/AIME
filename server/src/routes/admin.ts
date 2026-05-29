@@ -996,6 +996,61 @@ router.post("/signals", async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /admin/governance/signals/:id/continuity
+ * Save and persist Guided Workflow continuity metadata into Supabase jsonb.
+ */
+router.post("/governance/signals/:id/continuity", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const metadata = req.body;
+
+    const { data: signal, error: fetchError } = await supabase
+      .from('signals')
+      .select('*')
+      .eq('signal_id', id)
+      .single();
+
+    if (fetchError || !signal) {
+      return res.status(404).json({ error: "Signal not found" });
+    }
+
+    const updatedStructuredPost = {
+      ...signal.structured_post,
+      workflow_continuity: metadata
+    };
+
+    const { error: updateError } = await supabase
+      .from('signals')
+      .update({ structured_post: updatedStructuredPost })
+      .eq('signal_id', id);
+
+    if (updateError) throw updateError;
+
+    // Log telemetry
+    const logObj = {
+      event: "workflow_continuity_saved",
+      signal_id: id,
+      engagement_state: metadata.engagement_state,
+      last_action: metadata.last_action,
+      status: "ok"
+    };
+    console.log(JSON.stringify(logObj));
+
+    // Maintain legacy log file for backup traceability
+    const logPath = process.env.L2_LOG_PATH || path.resolve(process.cwd(), "..", "l2_logs.txt");
+    fs.appendFileSync(logPath, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        ...logObj
+    }) + "\n");
+
+    return res.json({ success: true, metadata });
+  } catch (error: any) {
+    console.error("Workflow continuity save error:", error);
+    return res.status(500).json({ error: "Failed to save workflow continuity data" });
+  }
+});
+
+/**
  * GET /admin/persona-usage
  * Placeholder for persona usage stats.
  */

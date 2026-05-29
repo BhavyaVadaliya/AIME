@@ -5,6 +5,7 @@ import { ExecutionValidationResult } from '../types/execution';
 import { startExecutionSession, getSessionStatus, getActiveSessionIdentity, ExtensionResponse } from '../utils/extensionBridge';
 import { ExecutionStatusBanner } from './ExecutionStatusBanner';
 import { ActiveSessionIndicator } from './ActiveSessionIndicator';
+import { GuidedWorkflowPanel } from './workflow/GuidedWorkflowPanel';
 
 
 
@@ -146,8 +147,9 @@ export const RespondWorkspace: React.FC<Props> = ({
 
                 <div className="flex-1 overflow-y-auto p-8 flex flex-col lg:flex-row gap-8">
                     
-                    {/* Left: Context Panel */}
-                    <div className="lg:w-1/3 space-y-6">
+                    {/* Left: Context, Editor & Readiness */}
+                    <div className="lg:w-[35%] space-y-6 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {/* 1. Context */}
                         <section className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
                                 <Target className="w-3 h-3" /> Signal Context
@@ -181,6 +183,29 @@ export const RespondWorkspace: React.FC<Props> = ({
                             </div>
                         </section>
 
+                        {/* 2. Suggested Reply / Editor Textarea */}
+                        <section className="bg-slate-950/40 p-5 rounded-2xl border border-slate-700/50 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                    <Type className="w-3 h-3" /> Response Draft (Editable)
+                                </h3>
+                                <span className="text-[9px] text-slate-600 font-mono">
+                                    {draft.length} chars
+                                </span>
+                            </div>
+                            <textarea
+                                value={draft}
+                                onChange={(e) => setDraft(e.target.value)}
+                                className="w-full h-28 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500/50 rounded-2xl p-4 text-white text-xs leading-normal resize-none outline-none transition-all placeholder:text-slate-750"
+                                placeholder="Write your response here..."
+                            />
+                            {/* Active Session Indicator */}
+                            <div className="flex justify-center pt-2">
+                                <ActiveSessionIndicator status={accountStatus} username={accountUsername} />
+                            </div>
+                        </section>
+
+                        {/* 3. Strategy */}
                         <section className="bg-indigo-500/5 p-5 rounded-2xl border border-indigo-500/20">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-2">
                                 <ShieldCheck className="w-3 h-3" /> Engagement Strategy
@@ -191,7 +216,7 @@ export const RespondWorkspace: React.FC<Props> = ({
                             </p>
                         </section>
 
-                        {/* Sprint 12 Execution Readiness Section */}
+                        {/* 4. Execution Readiness Status */}
                         <section className="bg-slate-950/40 p-5 rounded-2xl border border-slate-700/50">
                             <div className="flex items-center gap-2 mb-4">
                                 <Zap className="w-3 h-3 text-amber-400" />
@@ -254,65 +279,21 @@ export const RespondWorkspace: React.FC<Props> = ({
 
                     </div>
 
-                    {/* Right: Response Editor */}
-                    <div className="flex-1 flex flex-col gap-6">
-                        <div className="flex-1 flex flex-col">
-                            <div className="flex items-center justify-between mb-3 px-1">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                                    <Type className="w-3 h-3" /> Response Draft (Editable)
-                                </h3>
-                                <span className="text-[10px] text-slate-600 font-mono">
-                                    {draft.length} characters
-                                </span>
-                            </div>
-                            
-                            <textarea
-                                value={draft}
-                                onChange={(e) => setDraft(e.target.value)}
-                                className="flex-1 w-full bg-slate-950/50 border-2 border-slate-700/50 focus:border-indigo-500/50 rounded-3xl p-6 text-white text-base leading-relaxed resize-none outline-none transition-all placeholder:text-slate-700"
-                                placeholder="Write your response here..."
-                            />
-                        </div>
-
-                        {/* Active Session Indicator */}
-                        <div className="flex justify-center mb-4">
-                            <ActiveSessionIndicator status={accountStatus} username={accountUsername} />
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-4 pt-2">
-
-                            <button
-                                onClick={handlePrepareExecution}
-                                className={`flex-1 flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 rounded-2xl transition-all active:scale-[0.98] shadow-lg ${
-                                    extensionStatus === 'injection_succeeded'
-                                    ? 'bg-emerald-600 text-white shadow-emerald-500/20' 
-                                    : extensionStatus === 'extension_unavailable'
-                                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
-                                }`}
-                                disabled={extensionStatus === 'extension_unavailable'}
-                            >
-                                <Zap className="w-5 h-5" />
-                                {extensionStatus === 'injection_succeeded' 
-                                    ? 'Draft Ready' 
-                                    : extensionStatus === 'extension_unavailable'
-                                    ? 'Extension Not Detected'
-                                    : 'Open Source + Insert Draft'}
-                            </button>
-
-
-
-                            <button
-                                onClick={handleCopy}
-                                className={`flex items-center justify-center gap-3 font-black uppercase tracking-widest text-sm py-5 px-8 rounded-2xl transition-all border border-slate-700 active:scale-[0.98] ${
-                                    copyStatus === 'Copied!' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-                                }`}
-                            >
-                                <Copy className="w-5 h-5" />
-                                {copyStatus}
-                            </button>
-                        </div>
+                    {/* Right: Sprint 14 Guided Workflow Panel */}
+                    <div className="flex-1 overflow-y-auto pr-2 max-h-[65vh] custom-scrollbar">
+                        <GuidedWorkflowPanel
+                            signal={signal}
+                            draftResponse={draft}
+                            extensionStatus={extensionStatus}
+                            onTriggerExecution={handlePrepareExecution}
+                            onCopyResponse={handleCopy}
+                            onOpenPost={() => {
+                                if (s?.source?.source_url) {
+                                    window.open(s.source.source_url, '_blank');
+                                }
+                            }}
+                            onClose={onClose}
+                        />
                     </div>
                 </div>
 
