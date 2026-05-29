@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Filter, BarChart3, Clock, AlertTriangle, CheckCircle2, Layers, Info, Play, Loader2 } from 'lucide-react';
+import { Shield, Filter, BarChart3, Clock, AlertTriangle, CheckCircle2, Layers, Info, Play, Loader2, MessageSquare } from 'lucide-react';
 import { SignalDetailPanel } from '../components/SignalDetailPanel';
 import { ExternalSourceIcon } from '../components/ExternalSourceIcon';
 import { SourceLinkButton, checkIdentityMatch } from '../components/SourceLinkButton';
@@ -48,6 +48,7 @@ interface Signal {
             low_intent_phrase_overridden?: boolean;
             override_reason?: string;
         };
+        discussion_metadata?: any;
     };
     source_distribution?: {
         status: string;
@@ -832,6 +833,37 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                         }`}>
                             {s?.priority_tier}
                         </span>
+
+                        {s?.discussion_metadata && (
+                            <>
+                                <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <MessageSquare className="w-3 h-3 text-indigo-400" />
+                                    {s.discussion_metadata.discussion_source_type} (d{s.discussion_metadata.discussion_depth})
+                                </span>
+                                {s.discussion_metadata.source_type && (
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                        s.discussion_metadata.source_type === 'help_seeker' ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30' :
+                                        s.discussion_metadata.source_type === 'recommendation_seeker' ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30' :
+                                        s.discussion_metadata.source_type === 'transition_seeker' ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30' :
+                                        s.discussion_metadata.source_type === 'experience_sharer' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                                        s.discussion_metadata.source_type === 'creator_seller' ? 'bg-red-500/15 text-red-400 border border-red-500/30 line-through opacity-70' :
+                                        'bg-slate-700/30 text-slate-400 border border-slate-600/30'
+                                    }`}>
+                                        {s.discussion_metadata.source_type.replace('_', ' ')}
+                                    </span>
+                                )}
+                                {s.discussion_metadata.matched_phrase && (
+                                    <span className="px-2 py-0.5 bg-pink-500/15 text-pink-400 border border-pink-500/30 rounded text-[10px] font-bold font-mono">
+                                        Matched: "{s.discussion_metadata.matched_phrase}"
+                                    </span>
+                                )}
+                                {s.discussion_metadata.conflict_resolved && (
+                                    <span className="px-2 py-0.5 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded text-[10px] font-black uppercase tracking-widest animate-pulse">
+                                        Conflict Preserved
+                                    </span>
+                                )}
+                            </>
+                        )}
 
                         {s?.classification?.context_tags?.includes('prospect_candidate') && (
                             <span className="px-2 py-0.5 bg-pink-500/10 text-pink-400 border border-pink-500/30 rounded text-[10px] font-bold uppercase tracking-wider">

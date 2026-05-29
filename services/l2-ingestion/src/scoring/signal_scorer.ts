@@ -81,7 +81,7 @@ export class SignalScorer {
 
         let score = category_weight + type_adjustment + pattern_boost;
 
-        // S13-T01 & S13-T08 Contamination Qualification Weighting Calibration & S13-T02/T08 Prospect/Personal Elevation / Boost
+        // S13-T01 & S13-T08 Contamination & S14-T02 Discussion Suppression
         if (tags.some(t => [
             'seller_candidate',
             'promoter_candidate',
@@ -90,9 +90,11 @@ export class SignalScorer {
             'creator_candidate',
             'outbound_marketing_candidate',
             'audience_builder_candidate',
-            'coaching_promotion_candidate'
+            'coaching_promotion_candidate',
+            'creator_seller',
+            'discussion_noise'
         ].includes(t))) {
-            score = 1; // Drastically reduce qualification weighting / cap at 1 or 2
+            score = 1; // Drastically reduce qualification weighting / cap at 1
         } else if (tags.includes('prospect_candidate')) {
             // S13-T02 Prospect Preservation & Multi-Signal Boost
             const hasBoost = tags.includes('multi_signal_boost');
@@ -113,9 +115,12 @@ export class SignalScorer {
         } else if (tags.some(t => [
             'personal_exploration_candidate',
             'help_seeking_candidate',
-            'commercial_intent_candidate'
+            'commercial_intent_candidate',
+            'help_seeker',
+            'recommendation_seeker',
+            'transition_seeker'
         ].includes(t))) {
-            // S13-T08 Personal Exploration Intent Elevation & Multi-Signal Boost
+            // S13-T08 & S14-T02 Seeker Elevation & Multi-Signal Boost
             const hasBoost = tags.some(t => [
                 'multi_signal_exploration_boost',
                 'commercial_intent_multi_signal_boost'

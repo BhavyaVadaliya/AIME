@@ -35,6 +35,7 @@ interface Signal {
             source_url: string;
             timestamp: string;
         };
+        discussion_metadata?: any;
     };
 }
 
@@ -151,6 +152,66 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                             type={s?.classification.signal_type || 'unclassified'}
                         />
                     </section>
+
+                    {/* Discussion Metadata Section */}
+                    {s?.discussion_metadata && (
+                        <section className="bg-indigo-950/20 p-6 rounded-2xl border border-indigo-500/20 space-y-4">
+                            <div className="flex items-center justify-between border-b border-indigo-500/10 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <MessageCircle className="w-4 h-4 text-indigo-400 animate-pulse" />
+                                    <h3 className="text-[10px] text-indigo-400 uppercase font-black tracking-widest">Discussion-Layer Payload</h3>
+                                </div>
+                                <span className="px-2 py-0.5 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 rounded text-[9px] font-black uppercase">
+                                    {s.discussion_metadata.discussion_source_type} (depth {s.discussion_metadata.discussion_depth})
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div>
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-0.5">Author Handle</span>
+                                    <span className="text-white font-mono font-medium">@{s.discussion_metadata.author_handle}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-0.5">Source Type</span>
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                        s.discussion_metadata.source_type === 'help_seeker' ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30' :
+                                        s.discussion_metadata.source_type === 'recommendation_seeker' ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30' :
+                                        s.discussion_metadata.source_type === 'transition_seeker' ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30' :
+                                        s.discussion_metadata.source_type === 'experience_sharer' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                                        s.discussion_metadata.source_type === 'creator_seller' ? 'bg-red-500/15 text-red-400 border border-red-500/30' :
+                                        'bg-slate-700/30 text-slate-400 border border-slate-600/30'
+                                    }`}>
+                                        {s.discussion_metadata.source_type.replace('_', ' ')}
+                                    </span>
+                                </div>
+                                <div className="col-span-2">
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-0.5">Qualification Reason</span>
+                                    <p className="text-slate-300 italic">"{s.discussion_metadata.qualification_reason}"</p>
+                                </div>
+                                {s.discussion_metadata.matched_phrase && (
+                                    <div className="col-span-2">
+                                        <span className="text-[9px] text-slate-500 uppercase font-bold block mb-0.5">Explainability (Matched Phrase)</span>
+                                        <span className="px-2 py-1 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded font-mono font-bold">
+                                            Matched pattern: "{s.discussion_metadata.matched_phrase}"
+                                        </span>
+                                    </div>
+                                )}
+                                {s.discussion_metadata.parent_post_url && (
+                                    <div className="col-span-2 border-t border-indigo-500/10 pt-3">
+                                        <span className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Parent Post URL</span>
+                                        <a 
+                                            href={s.discussion_metadata.parent_post_url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-indigo-400 font-bold hover:underline flex items-center gap-1 inline-flex text-xs break-all"
+                                        >
+                                            {s.discussion_metadata.parent_post_url} <Share2 className="w-3.5 h-3.5" />
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    )}
 
                     {/* Governance Context */}
                     <section className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700/50">

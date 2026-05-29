@@ -1,4 +1,4 @@
-import { L2Bundle, SignalClassification } from '../types';
+import { L2Bundle, SignalClassification, DiscussionMetadata } from '../types';
 import { SignalScorer } from '../scoring/signal_scorer';
 import { PriorityTierMapper, PriorityTier } from '../scoring/priority_tier_mapper';
 
@@ -29,6 +29,7 @@ export interface StructuredPost {
         source_url: string;
         timestamp: string;
     };
+    discussion_metadata?: DiscussionMetadata;
 }
 
 /**
@@ -58,7 +59,8 @@ export class StructuredPostBuilder {
             governance_route: bundle.governance_route!,
             signal_score,
             priority_tier,
-            source
+            source,
+            discussion_metadata: bundle.discussion_metadata
         };
 
         const augmentedBundle = {

@@ -63,7 +63,7 @@ export class PriorityTierMapper {
      * 3. Fallback to category/type rules
      */
     mapTier(signalId: string, classification: SignalClassification, score?: number): PriorityTier {
-        // S13-T01 & S13-T08 Contamination Visibility Deprioritization
+        // S13-T01 & S13-T08 & S14-T02 Contamination Deprioritization
         if (classification.context_tags?.some(t => [
             'seller_candidate',
             'promoter_candidate',
@@ -72,7 +72,9 @@ export class PriorityTierMapper {
             'creator_candidate',
             'outbound_marketing_candidate',
             'audience_builder_candidate',
-            'coaching_promotion_candidate'
+            'coaching_promotion_candidate',
+            'creator_seller',
+            'discussion_noise'
         ].includes(t))) {
             console.log(JSON.stringify({
                 event: "seller_candidate_deprioritized",
@@ -146,11 +148,14 @@ export class PriorityTierMapper {
             }
         }
 
-        // S13-T08 Commercial/Personal Intent Preservation & Multi-Signal Boost
+        // S13-T08 & S14-T02 Commercial/Personal Intent Preservation & Multi-Signal Boost
         if (classification.context_tags?.some(t => [
             'personal_exploration_candidate',
             'help_seeking_candidate',
-            'commercial_intent_candidate'
+            'commercial_intent_candidate',
+            'help_seeker',
+            'recommendation_seeker',
+            'transition_seeker'
         ].includes(t))) {
             if (classification.context_tags?.some(t => [
                 'multi_signal_exploration_boost',

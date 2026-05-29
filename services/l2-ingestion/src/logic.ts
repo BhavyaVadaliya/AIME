@@ -78,6 +78,13 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         (classification.context_tags as string[]).push(...intent.matched_tags);
     }
 
+    // S14-T02 Discussion-Layer Integration (Add Tags early for routing/scoring)
+    if ((req as any).discussion_metadata) {
+        if ((req as any).discussion_metadata.discussion_tags) {
+            (classification.context_tags as string[]).push(...(req as any).discussion_metadata.discussion_tags);
+        }
+    }
+
 
     console.log(JSON.stringify({
         event: "signal_classified",
@@ -105,7 +112,8 @@ export const processL2Request = (req: L2IngestRequest): L2Bundle => {
         confidence: 1.0,
         flags,
         classification,
-        governance_route
+        governance_route,
+        discussion_metadata: (req as any).discussion_metadata
     };
 
     const finalBundle = postBuilder.build(bundle, rawText);

@@ -82,7 +82,59 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest | null {
     }
 
 
-    const canonicalSignal = {
+    let discussion_metadata: any = undefined;
+    
+    // S14-T02: Bounded Foundational Discussion-Layer
+    if (rawItem.discussion_metadata || rawItem.discussion_source_type || rawItem.comment_id) {
+        const d = rawItem.discussion_metadata || {};
+        const discussion_source_type = rawItem.discussion_source_type || d.discussion_source_type || (rawItem.reply_id ? 'reply' : 'comment');
+        const discussion_depth = Number(rawItem.discussion_depth || d.discussion_depth || (discussion_source_type === 'reply' ? 2 : 1));
+        
+        // Locked depth boundary: max 2 levels traversal check
+        if (discussion_depth > 2) {
+            console.log(JSON.stringify({
+                event: "signal_rejected_discussion_depth_limit",
+                timestamp: new Date().toISOString(),
+                signal_id: rawItem.id || rawItem.video_id || rawItem.comment_id,
+                discussion_depth,
+                reason: "depth_limit_exceeded",
+                status: "rejected"
+            }));
+            return null;
+        }
+
+        const parent_post_url = rawItem.parent_post_url || d.parent_post_url || sourceUrl || '';
+        const comment_id = rawItem.comment_id || d.comment_id || rawItem.id || '';
+        const reply_id = rawItem.reply_id || d.reply_id;
+        const author_handle = rawItem.author_handle || d.author_handle || authorName || '';
+        const discussion_author = rawItem.discussion_author || d.discussion_author || author_handle || '';
+        const discussion_context_excerpt = rawItem.discussion_context_excerpt || d.discussion_context_excerpt || text.substring(0, 100);
+
+        // Perform Source-Type & Intent Qualification
+        const { refineDiscussion } = require('./intent_refinement');
+        const refinement = refineDiscussion(text, rawItem.id || rawItem.video_id);
+
+        discussion_metadata = {
+            source_kind: discussion_source_type,
+            discussion_source_type,
+            discussion_depth,
+            parent_post_url,
+            comment_id,
+            reply_id,
+            author_handle,
+            discussion_author,
+            discussion_context_excerpt,
+            source_type: refinement.source_type,
+            source_type_reason: refinement.source_type_reason,
+            discussion_tags: refinement.discussion_tags,
+            qualification_reason: refinement.qualification_reason,
+            matched_phrase: refinement.matched_phrase,
+            conflict_resolved: refinement.conflict_resolved,
+            conflict_resolution: refinement.conflict_resolution
+        };
+    }
+
+    const canonicalSignal: any = {
         source: "tiktok",
         text: text,
         author: authorName,
@@ -98,11 +150,21 @@ export function normalizeTikTokItem(rawItem: any): L2IngestRequest | null {
         }
     };
 
-    return {
+    if (discussion_metadata) {
+        canonicalSignal.discussion_metadata = discussion_metadata;
+    }
+
+    const ingestRequest: any = {
         correlation_id: `corr-tk-${Date.now()}-${rawItem.id || rawItem.video_id}`,
         signal_id: rawItem.id || rawItem.video_id,
         source: 'tiktok',
         raw_text: text,
         metadata: canonicalSignal
     };
+
+    if (discussion_metadata) {
+        ingestRequest.discussion_metadata = discussion_metadata;
+    }
+
+    return ingestRequest;
 }

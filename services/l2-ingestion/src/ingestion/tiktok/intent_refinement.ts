@@ -408,3 +408,232 @@ export function refineIntent(text: string, signalId: string): IntentRefinementRe
   return { category: 'neutral_candidate', matched_tags };
 }
 
+export interface DiscussionRefinementResult {
+  source_type: 'help_seeker' | 'recommendation_seeker' | 'transition_seeker' | 'experience_sharer' | 'creator_seller' | 'discussion_noise';
+  source_type_reason: string;
+  discussion_tags: string[];
+  qualification_reason: string;
+  matched_phrase?: string;
+  conflict_resolved?: boolean;
+  conflict_resolution?: string;
+}
+
+export function refineDiscussion(text: string, signalId: string): DiscussionRefinementResult {
+  const t = text.toLowerCase().replace(/’/g, "'");
+
+  const matchPattern = (textStr: string, pattern: string): boolean => {
+    if (pattern.length <= 3) {
+      const regex = new RegExp(`\\b${pattern}s?\\b`, 'i');
+      return regex.test(textStr);
+    }
+    return textStr.includes(pattern);
+  };
+
+  // Section 4 Source-Type Dictionaries
+  const dicts = {
+    help_seeker: ["need help", "looking for advice", "can someone help", "what should i do", "where do i start"],
+    recommendation_seeker: ["any recommendations", "what worked for you", "does anyone recommend", "which certification"],
+    transition_seeker: ["career transition", "thinking about", "considering", "leaving bedside", "burned out"],
+    experience_sharer: ["here's what worked for me", "i transitioned last year", "my experience was"],
+    creator_seller: ["link in bio", "join my course", "book a call", "my students", "my clients", "follow for more", "dm me"],
+    discussion_noise: ["great post", "love this", "amazing", "so true"]
+  };
+
+  // Check Category matches
+  const matches: Record<string, string[]> = {
+    help_seeker: [],
+    recommendation_seeker: [],
+    transition_seeker: [],
+    experience_sharer: [],
+    creator_seller: [],
+    discussion_noise: []
+  };
+
+  for (const [category, phrases] of Object.entries(dicts)) {
+    for (const phrase of phrases) {
+      if (matchPattern(t, phrase)) {
+        matches[category].push(phrase);
+      }
+    }
+  }
+
+  // Section 5 Intent Qualification Categories
+  const discussion_tags: string[] = [];
+  
+  // self_referential
+  const selfRefPhrases = ["i'm", "i am", "my career", "my path", "my situation", "i'm thinking about", "i'm considering", "i transitioned", "my experience"];
+  if (selfRefPhrases.some(p => matchPattern(t, p))) {
+    discussion_tags.push("self_referential");
+  }
+
+  // help_seeking
+  const helpPhrases = ["help", "advice", "what should i do", "guidance"];
+  if (helpPhrases.some(p => matchPattern(t, p)) || matches.help_seeker.length > 0) {
+    discussion_tags.push("help_seeking");
+  }
+
+  // recommendation_seeking
+  const recPhrases = ["recommend", "recommendation", "what worked", "what works"];
+  if (recPhrases.some(p => matchPattern(t, p)) || matches.recommendation_seeker.length > 0) {
+    discussion_tags.push("recommendation_seeking");
+  }
+
+  // transition_language
+  const transPhrases = ["transition", "leaving bedside", "career change", "alternative career"];
+  if (transPhrases.some(p => matchPattern(t, p)) || matches.transition_seeker.length > 0) {
+    discussion_tags.push("transition_language");
+  }
+
+  // burnout_language
+  const burnPhrases = ["burned out", "burnt out", "exhausted", "stress"];
+  if (burnPhrases.some(p => matchPattern(t, p))) {
+    discussion_tags.push("burnout_language");
+  }
+
+  // question_signal
+  const questionPhrases = ["does anyone", "how do i", "which", "what", "can someone"];
+  if (t.includes("?") || questionPhrases.some(p => matchPattern(t, p))) {
+    discussion_tags.push("question_signal");
+  }
+
+  // commercial_curiosity
+  const commPhrases = ["is it worth", "certification", "course", "program", "cost", "enroll"];
+  if (commPhrases.some(p => matchPattern(t, p))) {
+    discussion_tags.push("commercial_curiosity");
+  }
+
+  // Determine dominant source type
+  let source_type: 'help_seeker' | 'recommendation_seeker' | 'transition_seeker' | 'experience_sharer' | 'creator_seller' | 'discussion_noise' = 'discussion_noise';
+  let matched_phrase = '';
+  let source_type_reason = 'default_noise';
+
+  // Order of evaluation prioritizing seekers
+  if (matches.help_seeker.length > 0) {
+    source_type = 'help_seeker';
+    matched_phrase = matches.help_seeker[0];
+    source_type_reason = `Matched help seeker pattern: "${matched_phrase}"`;
+    discussion_tags.push("help_seeker");
+  } else if (matches.recommendation_seeker.length > 0) {
+    source_type = 'recommendation_seeker';
+    matched_phrase = matches.recommendation_seeker[0];
+    source_type_reason = `Matched recommendation seeker pattern: "${matched_phrase}"`;
+    discussion_tags.push("recommendation_seeker");
+  } else if (matches.transition_seeker.length > 0) {
+    source_type = 'transition_seeker';
+    matched_phrase = matches.transition_seeker[0];
+    source_type_reason = `Matched transition seeker pattern: "${matched_phrase}"`;
+    discussion_tags.push("transition_seeker");
+  } else if (matches.experience_sharer.length > 0) {
+    source_type = 'experience_sharer';
+    matched_phrase = matches.experience_sharer[0];
+    source_type_reason = `Matched experience sharer pattern: "${matched_phrase}"`;
+    discussion_tags.push("experience_sharer");
+  } else if (matches.creator_seller.length > 0) {
+    source_type = 'creator_seller';
+    matched_phrase = matches.creator_seller[0];
+    source_type_reason = `Matched creator/seller pattern: "${matched_phrase}"`;
+    discussion_tags.push("creator_seller");
+  } else if (matches.discussion_noise.length > 0) {
+    source_type = 'discussion_noise';
+    matched_phrase = matches.discussion_noise[0];
+    source_type_reason = `Matched noise pattern: "${matched_phrase}"`;
+    discussion_tags.push("discussion_noise");
+  } else {
+    // If no explicit matches, evaluate based on qualified tags
+    if (discussion_tags.includes("help_seeking")) {
+      source_type = 'help_seeker';
+      source_type_reason = "Implicit help seeking pattern match";
+      discussion_tags.push("help_seeker");
+    } else if (discussion_tags.includes("recommendation_seeking")) {
+      source_type = 'recommendation_seeker';
+      source_type_reason = "Implicit recommendation seeking pattern match";
+      discussion_tags.push("recommendation_seeker");
+    } else if (discussion_tags.includes("transition_language")) {
+      source_type = 'transition_seeker';
+      source_type_reason = "Implicit transition seeking pattern match";
+      discussion_tags.push("transition_seeker");
+    } else {
+      source_type = 'discussion_noise';
+      source_type_reason = "Discussion noise default";
+      discussion_tags.push("discussion_noise");
+    }
+  }
+
+  // Mixed Intent Protection (Section 6)
+  const hasCreatorIndicator = matches.creator_seller.length > 0;
+  const hasSelfReferential = discussion_tags.includes("self_referential") || 
+                             ['help_seeker', 'recommendation_seeker', 'transition_seeker'].includes(source_type);
+  
+  let conflict_resolved = false;
+  let conflict_resolution = '';
+
+  if (hasCreatorIndicator && hasSelfReferential) {
+    // Self-referential/exploration dominates and is preserved
+    conflict_resolved = true;
+    
+    // Choose appropriate resolution reason
+    if (source_type === 'recommendation_seeker' || discussion_tags.includes("recommendation_seeking")) {
+      source_type = 'recommendation_seeker';
+      conflict_resolution = 'recommendation_preserved';
+    } else if (source_type === 'transition_seeker' || discussion_tags.includes("transition_language")) {
+      source_type = 'transition_seeker';
+      conflict_resolution = 'transition_preserved';
+    } else {
+      source_type = 'help_seeker';
+      conflict_resolution = 'exploration_preserved';
+    }
+
+    source_type_reason = `Mixed intent conflict resolved: creator/seller tag suppressed, ${conflict_resolution} resolution applied.`;
+    
+    // Trigger required Mixed Intent Resolution telemetry
+    console.log(JSON.stringify({
+      event: "discussion_source_conflict_resolved",
+      resolution: conflict_resolution,
+      status: "ok"
+    }));
+  }
+
+  // Trigger S14-T02 Telemetry Requirements (Section 9)
+  // 1. Source-Type Detection
+  console.log(JSON.stringify({
+    event: "discussion_source_type_detected",
+    source_type,
+    matched_pattern: matched_phrase || "implicit_match",
+    status: "ok"
+  }));
+
+  // 2. Visibility Calibration Telemetry (Section 7)
+  if (['help_seeker', 'recommendation_seeker', 'transition_seeker'].includes(source_type)) {
+    console.log(JSON.stringify({
+      event: "discussion_source_elevated",
+      source_type,
+      reason: source_type === 'recommendation_seeker' ? "peer_recommendation_request" : "help_seeking_transition_intent",
+      status: "ok"
+    }));
+  } else if (source_type === 'creator_seller' && !conflict_resolved) {
+    console.log(JSON.stringify({
+      event: "discussion_source_suppressed",
+      source_type: "creator_seller",
+      reason: "outbound_promotion",
+      status: "ok"
+    }));
+  } else if (source_type === 'discussion_noise') {
+    console.log(JSON.stringify({
+      event: "discussion_source_suppressed",
+      source_type: "discussion_noise",
+      reason: "discussion_noise_filtering",
+      status: "ok"
+    }));
+  }
+
+  return {
+    source_type,
+    source_type_reason,
+    discussion_tags: [...new Set(discussion_tags)],
+    qualification_reason: source_type_reason,
+    matched_phrase,
+    conflict_resolved,
+    conflict_resolution
+  };
+}
+
