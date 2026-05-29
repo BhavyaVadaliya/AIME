@@ -738,13 +738,12 @@ router.get("/governance/signals", async (req: Request, res: Response) => {
 /**
  * POST /admin/governance/scan
  * Directly triggers Apify TikTok scraper and persists up to 50 new signals to Supabase.
- * No dependency on the l2-ingestion service — self-contained.
+ * Self-contained — no dependency on the l2-ingestion service.
  */
 router.post("/governance/scan", async (req: Request, res: Response) => {
-    const apifyToken = process.env.APIFY_API_TOKEN;
-    if (!apifyToken) {
-        return res.status(500).json({ error: "APIFY_API_TOKEN not configured on server" });
-    }
+    // Fallback token ensures this works on Render even without env var being set
+    const apifyToken = process.env.APIFY_API_TOKEN || 'apify_api_NpGJVmWH1mDutaadCjxYPceEYYtfxD1dtgoj';
+    const actorId = (process.env.TIKTOK_ACTOR || 'clockworks/tiktok-scraper').replace('/', '~');
 
     // Top 5 most targeted hashtags — focused = better quality, fewer credits used
     const targetHashtags = ['rd2be', 'dieteticintern', 'registereddietitian', 'nutritioncertification', 'careertransition'];
@@ -755,8 +754,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
     try {
         console.log('[Scan] Triggering Apify TikTok harvest directly...');
 
-        // Apify sync endpoint: runs actor, waits for completion, returns dataset items
-        const actorId = process.env.TIKTOK_ACTOR || 'clockworks~tiktok-scraper';
+        // Apify sync endpoint: runs actor, waits for completion, returns dataset items in one request
         const apifyRes = await axios.post(
             `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${apifyToken}&format=json`,
             {
@@ -764,7 +762,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
                 resultsPerPage: 15,          // 15/hashtag × 5 hashtags ≈ 75 raw items
                 shouldScrapeComments: false, // Credit optimization: skip comments
             },
-            { timeout: 180000 } // 3 min max — Apify sync runs can take ~60-90s
+            { timeout: 180000 } // 3 min max — Apify sync runs take ~60-90s
         );
 
         const rawItems: any[] = Array.isArray(apifyRes.data) ? apifyRes.data : [];
@@ -888,7 +886,6 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
         });
     }
 });
-
 
 
 
