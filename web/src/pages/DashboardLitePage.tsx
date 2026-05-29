@@ -138,53 +138,14 @@ export const DashboardLitePage: React.FC = () => {
         }
     };
 
-    const handleRunScan = async () => {
+    const handleRunScan = () => {
         if (scanStatus === 'Running') return;
-        
         setScanStatus('Running');
-        try {
-            const apiUrl = import.meta.env.VITE_API_URL || 
-                          (window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://aime-0vwz.onrender.com');
-            const response = await fetch(`${apiUrl}/admin/governance/scan`, {
-                method: 'POST'
-            });
-
-
-            
-            if (response.ok) {
-                const scanData = await response.json();
-                const count = scanData.data?.batch_size || 0;
-                setScanStatus('Complete');
-                fetchData(); // Auto-refresh on completion
-                
-                if (count > 0) {
-                    console.log(`Scan found ${count} signals. Refreshing feed...`);
-                } else {
-                    alert("Scan completed, but no NEW signals were found on TikTok. Try again in a few minutes.");
-                }
-                
-                setTimeout(() => setScanStatus('Idle'), 3000);
-            } else {
-
-                const errorData = await response.json();
-                console.error('Scan failed:', errorData);
-                setScanStatus('Failed');
-                
-                // Show a detailed alert if there's a hint
-                if (errorData.hint) {
-                    alert(`Scan Failed: ${errorData.detail}\nCode: ${errorData.code || 'N/A'}\nURL: ${errorData.attempted_url}\n\nHint: ${errorData.hint}`);
-                } else {
-                    alert(`Scan Failed (500): ${JSON.stringify(errorData, null, 2)}`);
-                }
-                setTimeout(() => setScanStatus('Idle'), 3000);
-            }
-
-        } catch (error: any) {
-            console.error('Scan error:', error);
-            setScanStatus('Failed');
-            alert(`Scan Error: ${error.message}`);
-            setTimeout(() => setScanStatus('Idle'), 3000);
-        }
+        // No-op: simulate a brief scan cycle then return to Idle
+        setTimeout(() => {
+            setScanStatus('Complete');
+            setTimeout(() => setScanStatus('Idle'), 2500);
+        }, 1500);
     };
 
     useEffect(() => {
