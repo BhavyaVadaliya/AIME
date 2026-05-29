@@ -800,7 +800,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
             const author = item.authorMeta || item.author || {};
             const authorName: string = typeof author === 'string'
                 ? author
-                : (author.uniqueId || author.nickname || '');
+                : (author.name || author.uniqueId || author.nickName || author.nickname || '');
             const authorId: string = typeof author === 'object'
                 ? (author.id || author.secUid || '')
                 : '';
@@ -814,9 +814,9 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
             // 4. Quality scoring
             const lowerText = text.toLowerCase();
             const isPriority = priorityPatterns.some(p => lowerText.includes(p));
-            const tier: string = isPriority ? 'HIGH' : ((item.diggCount || 0) > 100 ? 'MEDIUM' : 'LOW');
+            const tier: string = isPriority ? 'HIGH' : ((item.diggCount || 0) > 10 ? 'MEDIUM' : 'LOW');
             const queue: string = isPriority ? 'higher_risk' : 'low_risk';
-            const score: number = isPriority ? 8 : ((item.diggCount || 0) > 100 ? 5 : 3);
+            const score: number = isPriority ? 8 : ((item.diggCount || 0) > 10 ? 5 : 4);
             const timestamp: string = item.createTime
                 ? new Date(item.createTime * 1000).toISOString()
                 : new Date().toISOString();
@@ -833,6 +833,7 @@ router.post("/governance/scan", async (req: Request, res: Response) => {
                     username: authorName,
                     author_id: authorId,
                     raw_text: text,
+                    created_at: new Date().toISOString(),
                     structured_post: {
                         raw_text: text,
                         classification: {
