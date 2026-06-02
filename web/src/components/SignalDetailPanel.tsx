@@ -11,6 +11,12 @@ import { getEngagementContext } from '../utils/engagementLogic';
 interface Signal {
     signal_id: string;
     correlation_id: string;
+    is_synthetic?: boolean;
+    qualification_state?: string;
+    review_state?: string;
+    approval_state?: string;
+    followup_state?: string;
+    selected_cta?: string;
     structured_post?: {
         raw_text: string;
         classification: {
@@ -48,10 +54,24 @@ interface PanelProps {
 export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCategoryLabel }) => {
     const [isRespondOpen, setIsRespondOpen] = useState(false);
 
+    // Interactive Demo States for S15-T01 Validation
+    const [reviewState, setReviewState] = useState<string>('Review Required');
+    const [approvalState, setApprovalState] = useState<string>('Approval Required');
+    const [followupState, setFollowupState] = useState<string>('Follow-Up Required');
+    const [qualificationState, setQualificationState] = useState<string>('Review Required');
+    const [demoCta, setDemoCta] = useState<string>('trust_only');
+
     // Prevent body scroll when panel is open
     useEffect(() => {
         if (signal) {
             document.body.style.overflow = 'hidden';
+            if (signal.is_synthetic) {
+                setReviewState(signal.review_state || 'Review Required');
+                setApprovalState(signal.approval_state || 'Approval Required');
+                setFollowupState(signal.followup_state || 'Follow-Up Required');
+                setQualificationState(signal.qualification_state || 'Review Required');
+                setDemoCta(signal.selected_cta || 'trust_only');
+            }
         } else {
             document.body.style.overflow = 'auto';
         }
@@ -80,8 +100,15 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                             s?.priority_tier === 'HIGH' ? 'bg-red-500 animate-pulse' : 
                             s?.priority_tier === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-500'
                         }`} />
-                        <div>
-                            <h2 className="text-white font-black uppercase tracking-tighter text-xl">Signal Detail</h2>
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-white font-black uppercase tracking-tighter text-xl">Signal Detail</h2>
+                                {signal.is_synthetic && (
+                                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded text-[9px] font-black uppercase tracking-widest animate-pulse">
+                                        DEMO MODE
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-[10px] text-slate-500 font-mono">ID: {signal.signal_id}</p>
                         </div>
                     </div>
@@ -107,6 +134,137 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                             </p>
                         </div>
                     </section>
+
+                    {/* DEMO TELEMETRY CONSOLE */}
+                    {signal.is_synthetic && (
+                        <div className="bg-amber-950/20 p-6 rounded-2xl border border-amber-500/20 space-y-4">
+                            <div className="flex items-center justify-between border-b border-amber-500/10 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                                    <h3 className="text-[10px] text-amber-400 font-bold uppercase tracking-widest">Synthetic Demo Console</h3>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 justify-end">
+                                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded text-[9px] font-black uppercase tracking-tight">
+                                        SYNTHETIC DATA
+                                    </span>
+                                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded text-[9px] font-black uppercase tracking-tight">
+                                        DEMO MODE
+                                    </span>
+                                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded text-[9px] font-black uppercase tracking-tight">
+                                        NOT LIVE DATA
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                                {/* Qualification State */}
+                                <div>
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Qualification Visibility</span>
+                                    <button
+                                        onClick={() => {
+                                            const states = ["Qualified", "Suppressed", "Review Required", "Compliance Review Required", "Follow-Up Required"];
+                                            const next = states[(states.indexOf(qualificationState) + 1) % states.length];
+                                            setQualificationState(next);
+                                            signal.qualification_state = next;
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg border font-bold uppercase text-[10px] w-full text-left transition-all ${
+                                            qualificationState === 'Qualified' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                            qualificationState === 'Suppressed' ? 'bg-slate-800 text-slate-500 border-slate-700/55 line-through' :
+                                            qualificationState === 'Review Required' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                            qualificationState === 'Compliance Review Required' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                            'bg-pink-500/10 text-pink-400 border-pink-500/20'
+                                        }`}
+                                    >
+                                        {qualificationState}
+                                    </button>
+                                </div>
+
+                                {/* Review Visibility */}
+                                <div>
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Review Visibility</span>
+                                    <button
+                                        onClick={() => {
+                                            const states = ["Pending Review", "Reviewed", "Review Required"];
+                                            const next = states[(states.indexOf(reviewState) + 1) % states.length];
+                                            setReviewState(next);
+                                            signal.review_state = next;
+                                        }}
+                                        className="px-3 py-1.5 rounded-lg border font-bold uppercase text-[10px] w-full text-left transition-all bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500"
+                                    >
+                                        {reviewState}
+                                    </button>
+                                </div>
+
+                                {/* Human Approval Visibility */}
+                                <div>
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Human Approval Status</span>
+                                    <button
+                                        onClick={() => {
+                                            const states = ["Approval Required", "Approval Pending", "Approval Complete"];
+                                            const next = states[(states.indexOf(approvalState) + 1) % states.length];
+                                            setApprovalState(next);
+                                            signal.approval_state = next;
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg border font-bold uppercase text-[10px] w-full text-left transition-all ${
+                                            approvalState === 'Approval Complete' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                            approvalState === 'Approval Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' :
+                                            'bg-red-500/10 text-red-400 border-red-500/20'
+                                        }`}
+                                    >
+                                        {approvalState}
+                                    </button>
+                                </div>
+
+                                {/* Follow-Up Visibility */}
+                                <div>
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Follow-Up State</span>
+                                    <button
+                                        onClick={() => {
+                                            const states = ["Follow-Up Required", "Follow-Up Pending", "Follow-Up Complete"];
+                                            const next = states[(states.indexOf(followupState) + 1) % states.length];
+                                            setFollowupState(next);
+                                            signal.followup_state = next;
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg border font-bold uppercase text-[10px] w-full text-left transition-all ${
+                                            followupState === 'Follow-Up Complete' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                            followupState === 'Follow-Up Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' :
+                                            'bg-pink-500/10 text-pink-400 border-pink-500/20'
+                                        }`}
+                                    >
+                                        {followupState}
+                                    </button>
+                                </div>
+
+                                {/* CTA Stage Selector (Advisory Only) */}
+                                <div className="col-span-2 border-t border-amber-500/15 pt-3">
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold block mb-1">
+                                        CTA Advisory Level Selector (Advisory Only)
+                                    </span>
+                                    <div className="flex gap-2">
+                                        {["trust_only", "asset_positioning", "discovery_closing"].map((cta) => (
+                                            <button
+                                                key={cta}
+                                                onClick={() => {
+                                                    setDemoCta(cta);
+                                                    signal.selected_cta = cta;
+                                                }}
+                                                className={`px-3 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${
+                                                    demoCta === cta 
+                                                    ? 'bg-amber-500 text-slate-950 font-black shadow-md border border-amber-450' 
+                                                    : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+                                                }`}
+                                            >
+                                                {cta.replace('_', ' ')}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <span className="text-[9px] text-amber-500/70 italic mt-1.5 block">
+                                        ⚠️ Advisory only: No automatic CTA selection or autonomous engagement occurs.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Classification & Score Grid */}
                     <div className="grid grid-cols-1 gap-6">
@@ -220,8 +378,12 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                                 <ChevronRight className="w-4 h-4 text-cyan-500" />
                                 <h3 className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Governance Queue</h3>
                             </div>
-                            <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-[10px] font-bold uppercase">
-                                {s?.governance_route?.queue?.replace(/_/g, ' ') || 'GENERAL QUEUE'}
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                                s?.governance_route?.queue === 'demo_synthetic_queue'
+                                ? 'bg-amber-500/15 text-amber-450 border-amber-500/35 animate-pulse font-black'
+                                : 'bg-cyan-500/10 text-cyan-405 border-cyan-500/20'
+                            }`}>
+                                {s?.governance_route?.queue === 'demo_synthetic_queue' ? 'DEMO/SYNTHETIC QUEUE' : (s?.governance_route?.queue?.replace(/_/g, ' ') || 'GENERAL QUEUE')}
                             </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
@@ -236,6 +398,14 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                             <SignalSourceBlock source={s.source} />
                         )}
                     </section>
+
+                    {/* Synthetic Data Disclaimer (S15-T01 Requirement) */}
+                    {signal.is_synthetic && (
+                        <div className="bg-slate-950/80 p-5 rounded-2xl border border-amber-500/20 text-slate-400 text-[11px] leading-relaxed">
+                            <span className="text-amber-400 font-bold block mb-1">⚠️ SYSTEM SAFETY DISCLOSURE (MANDATORY):</span>
+                            Synthetic Demo Mode does not represent: live-source data, live acquisition capability, source coverage capability, connector capability, or production-scale performance.
+                        </div>
+                    )}
 
                     {/* Technical Details (Collapsible) */}
                     <details className="group border border-slate-800 rounded-xl overflow-hidden">

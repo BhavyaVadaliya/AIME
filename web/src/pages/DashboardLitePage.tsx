@@ -73,10 +73,321 @@ interface Signal {
     approval_status?: {
         state: string;
     };
+    is_synthetic?: boolean;
+    qualification_state?: string;
+    review_state?: string;
+    approval_state?: string;
+    followup_state?: string;
+    selected_cta?: string;
 }
+
+export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
+    {
+        signal_id: "demo-sig-nurse",
+        correlation_id: "corr-demo-sig-nurse",
+        is_synthetic: true,
+        qualification_state: "Qualified",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "Follow-Up Complete",
+        selected_cta: "trust_only",
+        structured_post: {
+            raw_text: "Experienced Registered Nurse seeking advisory support for career transition options.",
+            classification: {
+                primary_category: "TRANSITION_SEEKER",
+                signal_type: "nurse_transition",
+                context_tags: ["personal_exploration_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 8
+            },
+            priority_tier: "HIGH",
+            source: {
+                platform: "synthetic_source",
+                username: "nurse_advisor_demo",
+                author_id: "synthetic-author-001",
+                source_url: "demo-routing://synthetic-payload/nurse",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "reply",
+                discussion_depth: 1,
+                source_type: "help_seeker",
+                qualification_reason: "High-value professional seeking active career transition assistance.",
+                matched_phrase: "career transition",
+                author_handle: "nurse_advisor_demo"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-chiro",
+        correlation_id: "corr-demo-sig-chiro",
+        is_synthetic: true,
+        qualification_state: "Qualified",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "Follow-Up Complete",
+        selected_cta: "trust_only",
+        structured_post: {
+            raw_text: "Licensed Chiropractor seeking to add digital rehabilitation workflows into my private practice.",
+            classification: {
+                primary_category: "TRANSITION_SEEKER",
+                signal_type: "chiropractic_workflow",
+                context_tags: ["personal_exploration_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 7
+            },
+            priority_tier: "MEDIUM",
+            source: {
+                platform: "synthetic_source",
+                username: "chiro_steve_demo",
+                author_id: "synthetic-author-002",
+                source_url: "demo-routing://synthetic-payload/chiro",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "comment",
+                discussion_depth: 2,
+                source_type: "transition_seeker",
+                qualification_reason: "Licensed chiropractor looking to pivot into digital wellness pathways.",
+                matched_phrase: "rehabilitation workflows",
+                author_handle: "chiro_steve_demo"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-medfit",
+        correlation_id: "corr-demo-sig-medfit",
+        is_synthetic: true,
+        qualification_state: "Review Required",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "Follow-Up Complete",
+        selected_cta: "trust_only",
+        structured_post: {
+            raw_text: "Medical clinic assistant asking if they can provide nutritional consulting packages under current practice guidelines.",
+            classification: {
+                primary_category: "HELP_SEEKER",
+                signal_type: "nutritional_consulting",
+                context_tags: ["help_seeking_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 5
+            },
+            priority_tier: "MEDIUM",
+            source: {
+                platform: "synthetic_source",
+                username: "assistant_anna_demo",
+                author_id: "synthetic-author-003",
+                source_url: "demo-routing://synthetic-payload/medfit",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "reply",
+                discussion_depth: 1,
+                source_type: "help_seeker",
+                qualification_reason: "Clinical staff inquiring about scope-of-practice and consulting guidelines.",
+                matched_phrase: "practice guidelines",
+                author_handle: "assistant_anna_demo"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-suppseller",
+        correlation_id: "corr-demo-sig-suppseller",
+        is_synthetic: true,
+        qualification_state: "Suppressed",
+        review_state: "Reviewed",
+        approval_state: "Approval Complete",
+        followup_state: "Follow-Up Complete",
+        selected_cta: "trust_only",
+        structured_post: {
+            raw_text: "Direct supplement seller promoting proprietary fat-loss pills with guaranteed results.",
+            classification: {
+                primary_category: "UNCLASSIFIED",
+                signal_type: "supplement_sales",
+                context_tags: ["commercial_seller_suppressed"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 1
+            },
+            priority_tier: "LOW",
+            source: {
+                platform: "synthetic_source",
+                username: "supplement_bob_demo",
+                author_id: "synthetic-author-004",
+                source_url: "demo-routing://synthetic-payload/suppseller",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "comment",
+                discussion_depth: 1,
+                source_type: "creator_seller",
+                qualification_reason: "Unqualified seller promoting health products with income/potency claims.",
+                matched_phrase: "fat-loss pills",
+                author_handle: "supplement_bob_demo"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-exagincome",
+        correlation_id: "corr-demo-sig-exagincome",
+        is_synthetic: true,
+        qualification_state: "Review Required",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "Follow-Up Complete",
+        selected_cta: "trust_only",
+        structured_post: {
+            raw_text: "Independent practitioner looking for ways to double clinical revenue within 30 days using automated client upselling.",
+            classification: {
+                primary_category: "HELP_SEEKER",
+                signal_type: "revenue_growth",
+                context_tags: ["commercial_intent_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 4
+            },
+            priority_tier: "MEDIUM",
+            source: {
+                platform: "synthetic_source",
+                username: "practitioner_paul_demo",
+                author_id: "synthetic-author-005",
+                source_url: "demo-routing://synthetic-payload/exagincome",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "comment",
+                discussion_depth: 2,
+                source_type: "help_seeker",
+                qualification_reason: "Aggressive business expansion model requiring review for professional policy alignment.",
+                matched_phrase: "double clinical revenue",
+                author_handle: "practitioner_paul_demo"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-compliance",
+        correlation_id: "corr-demo-sig-compliance",
+        is_synthetic: true,
+        qualification_state: "Compliance Review Required",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "Follow-Up Complete",
+        selected_cta: "trust_only",
+        structured_post: {
+            raw_text: "Provider requesting advice on off-label prescription advertising guidelines and HIPAA override practices.",
+            classification: {
+                primary_category: "COMPLIANCE_RISK",
+                signal_type: "advertising_guidelines",
+                context_tags: ["compliance_risk_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 9
+            },
+            priority_tier: "HIGH",
+            source: {
+                platform: "synthetic_source",
+                username: "dr_clara_demo",
+                author_id: "synthetic-author-006",
+                source_url: "demo-routing://synthetic-payload/compliance",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "reply",
+                discussion_depth: 1,
+                source_type: "help_seeker",
+                qualification_reason: "High compliance risk: request details on HIPAA overrides and off-label promotions.",
+                matched_phrase: "HIPAA override",
+                author_handle: "dr_clara_demo"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-followup",
+        correlation_id: "corr-demo-sig-followup",
+        is_synthetic: true,
+        qualification_state: "Follow-Up Required",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "Follow-Up Required",
+        selected_cta: "trust_only",
+        structured_post: {
+            raw_text: "Patient transition inquiry requesting immediate follow-up on clinical referral options.",
+            classification: {
+                primary_category: "TRANSITION_SEEKER",
+                signal_type: "referral_options",
+                context_tags: ["follow_up_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 8
+            },
+            priority_tier: "HIGH",
+            source: {
+                platform: "synthetic_source",
+                username: "patient_pat_demo",
+                author_id: "synthetic-author-007",
+                source_url: "demo-routing://synthetic-payload/followup",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "comment",
+                discussion_depth: 1,
+                source_type: "help_seeker",
+                qualification_reason: "Critical follow-up requested by transitioning patient.",
+                matched_phrase: "immediate follow-up",
+                author_handle: "patient_pat_demo"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    }
+];
 
 export const DashboardLitePage: React.FC = () => {
     const [signals, setSignals] = useState<Signal[]>([]);
+    const [demoMode, setDemoMode] = useState(false);
     const [filterCategory, setFilterCategory] = useState('All');
     const [filterTier, setFilterTier] = useState('All');
     const [filterQueue, setFilterQueue] = useState('All');
@@ -87,6 +398,8 @@ export const DashboardLitePage: React.FC = () => {
     const [scanStatus, setScanStatus] = useState<'Idle' | 'Running' | 'Complete' | 'Failed'>('Idle');
     const [expandedCreators, setExpandedCreators] = useState<Record<string, boolean>>({});
     const [expandedDuplicates, setExpandedDuplicates] = useState<Record<string, boolean>>({});
+
+    const activeSignalsList = demoMode ? SYNTHETIC_DEMO_SIGNALS : signals;
 
     const toggleCreator = (username: string) => {
         setExpandedCreators(prev => ({
@@ -178,7 +491,7 @@ export const DashboardLitePage: React.FC = () => {
     const processedSignals = React.useMemo(() => {
         const groups: Record<string, { signal: Signal, count: number }> = {};
         
-        signals.forEach(s => {
+        activeSignalsList.forEach(s => {
             const key = s.structured_post?.raw_text || s.signal_id;
             if (!groups[key]) {
                 groups[key] = { signal: s, count: 1 };
@@ -188,7 +501,7 @@ export const DashboardLitePage: React.FC = () => {
         });
 
         return Object.values(groups);
-    }, [signals]);
+    }, [activeSignalsList]);
 
     const filteredSignals = processedSignals.filter(({ signal: s }) => {
         const catMatch = filterCategory === 'All' || s.structured_post?.classification.primary_category === filterCategory;
@@ -198,15 +511,15 @@ export const DashboardLitePage: React.FC = () => {
     });
 
     const metrics = {
-        total: signals.length,
+        total: activeSignalsList.length,
         unique: processedSignals.length,
-        high: signals.filter(s => s.structured_post?.priority_tier === 'HIGH').length,
-        med: signals.filter(s => s.structured_post?.priority_tier === 'MEDIUM').length,
-        low: signals.filter(s => s.structured_post?.priority_tier === 'LOW').length,
-        highRiskQueue: signals.filter(s => s.structured_post?.governance_route.queue === 'higher_risk').length,
+        high: activeSignalsList.filter(s => s.structured_post?.priority_tier === 'HIGH').length,
+        med: activeSignalsList.filter(s => s.structured_post?.priority_tier === 'MEDIUM').length,
+        low: activeSignalsList.filter(s => s.structured_post?.priority_tier === 'LOW').length,
+        highRiskQueue: activeSignalsList.filter(s => s.structured_post?.governance_route.queue === 'higher_risk').length,
     };
 
-    const categories = ['All', ...new Set(signals.map(s => s.structured_post?.classification.primary_category).filter(Boolean)) as Set<string>];
+    const categories = ['All', ...new Set(activeSignalsList.map(s => s.structured_post?.classification.primary_category).filter(Boolean)) as Set<string>];
 
     const mapCategoryLabel = (cat: string) => cat === 'UNCLASSIFIED' ? 'General' : cat;
 
@@ -214,13 +527,13 @@ export const DashboardLitePage: React.FC = () => {
     const isLowValue = (s: Signal) => !isLowIntent(s) && s.structured_post?.priority_tier === 'LOW' && (s.structured_post?.signal_score?.score || 0) <= 3;
 
     const filteredRawSignals = React.useMemo(() => {
-        return signals.filter(s => {
+        return activeSignalsList.filter(s => {
             const catMatch = filterCategory === 'All' || s.structured_post?.classification.primary_category === filterCategory;
             const tierMatch = filterTier === 'All' || s.structured_post?.priority_tier === filterTier;
             const queueMatch = filterQueue === 'All' || s.structured_post?.governance_route.queue === filterQueue;
             return catMatch && tierMatch && queueMatch;
         });
-    }, [signals, filterCategory, filterTier, filterQueue]);
+    }, [activeSignalsList, filterCategory, filterTier, filterQueue]);
 
     const standardSignals = React.useMemo(() => filteredRawSignals.filter(s => !isLowValue(s) && !isLowIntent(s)), [filteredRawSignals]);
     const lowValueSignals = React.useMemo(() => filteredRawSignals.filter(s => isLowValue(s)), [filteredRawSignals]);
@@ -264,6 +577,20 @@ export const DashboardLitePage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-[#0f172a] text-slate-200 p-8 font-['Inter']">
+            {/* Sticky Warning Banner */}
+            {demoMode && (
+                <div className="bg-amber-500/20 border border-amber-500/30 text-amber-300 px-6 py-3.5 flex justify-between items-center text-xs font-black tracking-widest uppercase backdrop-blur-md rounded-2xl mb-8 animate-pulse shadow-lg shadow-amber-900/10">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping" />
+                        <span>⚠️ SYNTHETIC DATA | DEMO MODE | NOT LIVE DATA</span>
+                    </div>
+                    <div className="flex gap-6 items-center">
+                        <span className="bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 text-[10px]">S15-T01 ACTIVE</span>
+                        <span>DEMO DISCLOSURES MANDATORY</span>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <header className="flex justify-between items-center mb-12">
                 <div>
@@ -312,6 +639,27 @@ export const DashboardLitePage: React.FC = () => {
                                 scanStatus === 'Failed' ? 'text-red-400' : 'text-slate-400'
                             }`}>
                                 {scanStatus}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Synthetic Demo Mode Toggle Button */}
+                    <div className="flex items-center gap-4 ml-6 pl-6 border-l border-slate-700">
+                        <button
+                            onClick={() => setDemoMode(!demoMode)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all duration-300 active:scale-95 ${
+                                demoMode 
+                                ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-900/30 border border-amber-400/40' 
+                                : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600/30'
+                            }`}
+                        >
+                            <Shield className="w-4 h-4 text-white" />
+                            {demoMode ? 'Disable Demo' : 'Enable Demo Mode'}
+                        </button>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Mode</span>
+                            <span className={`text-xs font-mono font-bold ${demoMode ? 'text-amber-400' : 'text-slate-400'}`}>
+                                {demoMode ? 'SYNTHETIC' : 'PRODUCTION'}
                             </span>
                         </div>
                     </div>
@@ -381,7 +729,7 @@ export const DashboardLitePage: React.FC = () => {
                                         const clusterSize = signal.duplicate_control?.cluster_size || 1;
                                         
                                         const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
-                                            ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                            ? activeSignalsList.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
                                             : [];
                                             
                                         const isDupExpanded = !!expandedDuplicates[clusterId || ''];
@@ -451,7 +799,7 @@ export const DashboardLitePage: React.FC = () => {
                                                 const clusterSize = signal.duplicate_control?.cluster_size || 1;
                                                 
                                                 const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
-                                                    ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                                    ? activeSignalsList.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
                                                     : [];
                                                     
                                                 const isDupExpanded = !!expandedDuplicates[clusterId || ''];
@@ -537,7 +885,7 @@ export const DashboardLitePage: React.FC = () => {
                                                         const clusterSize = signal.duplicate_control?.cluster_size || 1;
                                                         
                                                         const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
-                                                            ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                                            ? activeSignalsList.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
                                                             : [];
                                                             
                                                         const isDupExpanded = !!expandedDuplicates[clusterId || ''];
@@ -609,7 +957,7 @@ export const DashboardLitePage: React.FC = () => {
                                                                 const clusterSize = signal.duplicate_control?.cluster_size || 1;
                                                                 
                                                                 const collapsedDuplicates = (isRepresentative && clusterSize > 1 && clusterId)
-                                                                    ? signals.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
+                                                                    ? activeSignalsList.filter(x => x.duplicate_control?.cluster_id === clusterId && x.duplicate_control?.collapsed === true)
                                                                     : [];
                                                                     
                                                                 const isDupExpanded = !!expandedDuplicates[clusterId || ''];
@@ -815,6 +1163,28 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                             {s?.priority_tier}
                         </span>
 
+                        {signal.is_synthetic && (
+                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded text-[10px] font-black uppercase tracking-widest animate-pulse">
+                                DEMO MODE
+                            </span>
+                        )}
+                        {signal.is_synthetic && (
+                            <span className="px-2 py-0.5 bg-slate-800 text-slate-400 border border-slate-700/50 rounded text-[10px] font-mono tracking-wider font-bold">
+                                SYNTHETIC DATA
+                            </span>
+                        )}
+                        {signal.is_synthetic && signal.qualification_state && (
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                                signal.qualification_state === 'Qualified' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                signal.qualification_state === 'Suppressed' ? 'bg-slate-950/60 text-slate-500 border-slate-800/80 line-through' :
+                                signal.qualification_state === 'Review Required' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                                signal.qualification_state === 'Compliance Review Required' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
+                                'bg-pink-500/10 text-pink-400 border-pink-500/20'
+                            }`}>
+                                Expected: {signal.qualification_state}
+                            </span>
+                        )}
+
                         {s?.discussion_metadata && (
                             <>
                                 <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
@@ -961,7 +1331,7 @@ const SignalRow = ({ signal, count, mapCategoryLabel, isLowValue = false, onClic
                         </span>
                     </div>
                     <div className="text-[9px] text-slate-600 font-bold uppercase tracking-widest text-right mt-1">
-                        Queue: {s?.governance_route.queue.replace('_', ' ')}
+                        Queue: {s?.governance_route.queue === 'demo_synthetic_queue' ? 'DEMO/SYNTHETIC QUEUE' : s?.governance_route.queue.replace(/_/g, ' ')}
                     </div>
                 </div>
             </div>
