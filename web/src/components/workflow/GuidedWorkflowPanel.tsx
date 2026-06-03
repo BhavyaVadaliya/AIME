@@ -8,7 +8,7 @@ import { ContinuityNoteBox } from './ContinuityNoteBox';
 import { WorkflowPanelState, CtaLevel, DestinationAsset, FinalAction, EngagementState } from '../../types/workflow';
 import { getWorkflowSuggestion } from '../../utils/workflowDefaults';
 import { validateWorkflowState } from '../../utils/workflowValidation';
-import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShieldCheck, ChevronRight, ShieldAlert, Layers } from 'lucide-react';
 
 interface Props {
   signal: any;
@@ -122,12 +122,12 @@ export const GuidedWorkflowPanel: React.FC<Props> = ({
     
     // Automatically transition metadata values where helpful
     if (action === 'insert_draft' || action === 'copy_response' || action === 'respond_manually') {
-      setEngagementState('engaged');
+      setEngagementState('response_drafted');
     } else if (action === 'mark_follow_up') {
       setEngagementState('follow_up_needed');
       setFollowUpRequired(true);
     } else if (action === 'disqualify') {
-      setEngagementState('disqualified');
+      setEngagementState('not_fit');
     }
   };
 
@@ -205,6 +205,90 @@ export const GuidedWorkflowPanel: React.FC<Props> = ({
           setCurrentStep(step);
         }}
       />
+
+      {/* S15-T02 Demo-Safe Warning Ribbon */}
+      {signal.is_synthetic && (
+        <div className="bg-amber-500/10 border border-amber-500/25 p-3 rounded-xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-amber-300 shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
+            <span>SYNTHETIC DATA | DEMO MODE</span>
+          </div>
+          <span>NOT LIVE DATA</span>
+        </div>
+      )}
+
+      {/* GIME OPERATOR WORKFLOW PATH VISUALIZER (S15-T02) */}
+      <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-slate-400" />
+            Active GIME Monetization Path
+          </span>
+          <span className="text-[9px] bg-slate-900 px-2 py-0.5 rounded text-indigo-400 border border-indigo-500/10 font-bold uppercase tracking-tight">
+            HITL Active
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+          {/* 1. Signal */}
+          <div className="flex flex-col">
+            <span className="text-[8px] text-slate-600 uppercase font-extrabold">Signal</span>
+            <span className="text-white font-medium">@{signal.structured_post?.source?.username || 'unknown'}</span>
+          </div>
+          <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+
+          {/* 2. Review */}
+          <div className="flex flex-col">
+            <span className="text-[8px] text-slate-600 uppercase font-extrabold">Review</span>
+            <span className={qualificationConfirmed ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold animate-pulse'}>
+              {qualificationConfirmed ? 'Qualified' : 'Unqualified'}
+            </span>
+          </div>
+          <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+
+          {/* 3. CTA */}
+          <div className="flex flex-col">
+            <span className="text-[8px] text-slate-600 uppercase font-extrabold">CTA</span>
+            <span className="text-white capitalize">{selectedCta.replace(/_/g, ' ')}</span>
+          </div>
+          <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+
+          {/* 4. Asset */}
+          <div className="flex flex-col">
+            <span className="text-[8px] text-slate-600 uppercase font-extrabold">Asset</span>
+            <span className={selectedAsset === 'no_asset' ? 'text-slate-500 line-through' : 'text-indigo-400 font-bold'}>
+              {selectedAsset.replace(/_/g, ' ')}
+            </span>
+          </div>
+          <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+
+          {/* 5. Action */}
+          <div className="flex flex-col">
+            <span className="text-[8px] text-slate-600 uppercase font-extrabold">Action</span>
+            <span className="text-white capitalize">{selectedAction.replace(/_/g, ' ')}</span>
+          </div>
+          <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+
+          {/* 6. Follow-Up */}
+          <div className="flex flex-col">
+            <span className="text-[8px] text-slate-600 uppercase font-extrabold">Follow-Up</span>
+            <span className="text-slate-300 font-medium capitalize">
+              {engagementState === 'follow_up_needed' ? 'Follow-Up Needed' : engagementState.replace(/_/g, ' ')}
+            </span>
+          </div>
+          <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
+
+          {/* 7. Human Approval */}
+          <div className="flex flex-col">
+            <span className="text-[8px] text-slate-600 uppercase font-extrabold">Approval</span>
+            <span className={`font-bold ${
+              signal.approval_state === 'Approval Complete' ? 'text-emerald-400' :
+              signal.approval_state === 'Approval Pending' ? 'text-amber-400' : 'text-slate-400'
+            }`}>
+              {signal.approval_state || 'Approval Required'}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* validation Errors banner */}
       {validationErrors.length > 0 && (

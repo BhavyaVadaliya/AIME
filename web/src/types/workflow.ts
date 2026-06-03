@@ -7,6 +7,7 @@ export type CtaLevel =
   | "enrollment_cta";
 
 export type DestinationAsset =
+  | "course_description"
   | "course_overview_page"
   | "gime_landing_page"
   | "confidence_checklist"
@@ -26,10 +27,12 @@ export type FinalAction =
 export type EngagementState =
   | "new"
   | "reviewed"
-  | "engaged"
+  | "needs_response"
+  | "response_drafted"
+  | "waiting"
   | "follow_up_needed"
-  | "closed"
-  | "disqualified";
+  | "not_fit"
+  | "closed";
 
 export interface WorkflowPanelState {
   signal_id: string;

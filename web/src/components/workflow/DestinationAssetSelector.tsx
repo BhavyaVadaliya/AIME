@@ -14,6 +14,7 @@ export const DestinationAssetSelector: React.FC<Props> = ({
   onChange
 }) => {
   const assetOptions: { value: DestinationAsset; label: string; url: string; description: string }[] = [
+    { value: 'course_description', label: 'Course Description', url: '/pathways/nutrition-course-description', description: 'Curriculum overview and details about nutrition education packages. Safest first monetization asset for qualified candidates.' },
     { value: 'course_overview_page', label: 'Course Overview Page', url: '/pathways/nutrition-overview', description: 'Comprehensive guide showcasing curriculum, credentials, and schedule.' },
     { value: 'gime_landing_page', label: 'GIME Landing Page', url: '/gime/explore-pathway', description: 'Interactive entry hub presenting standard career paths and outcomes.' },
     { value: 'confidence_checklist', label: 'Confidence Checklist', url: '/resources/bedside-transition-checklist', description: 'Self-qualification list for nurse-to-nutrition career moves.' },

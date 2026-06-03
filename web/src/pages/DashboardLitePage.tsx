@@ -89,14 +89,14 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
         qualification_state: "Qualified",
         review_state: "Review Required",
         approval_state: "Approval Required",
-        followup_state: "Follow-Up Complete",
-        selected_cta: "trust_only",
+        followup_state: "new",
+        selected_cta: "course_awareness_cta",
         structured_post: {
-            raw_text: "Experienced Registered Nurse seeking advisory support for career transition options.",
+            raw_text: "Experienced Registered Nurse seeking advisory support for career transition options. I want to add nutrition education or counseling support to my bedside practice.",
             classification: {
                 primary_category: "TRANSITION_SEEKER",
                 signal_type: "nurse_transition",
-                context_tags: ["personal_exploration_candidate"]
+                context_tags: ["gime_nurse_fit", "personal_exploration_candidate"]
             },
             governance_route: {
                 queue: "demo_synthetic_queue"
@@ -116,8 +116,8 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
                 discussion_source_type: "reply",
                 discussion_depth: 1,
                 source_type: "help_seeker",
-                qualification_reason: "High-value professional seeking active career transition assistance.",
-                matched_phrase: "career transition",
+                qualification_reason: "Strong fit nurse interested in adding nutrition education.",
+                matched_phrase: "nutrition education",
                 author_handle: "nurse_advisor_demo"
             }
         },
@@ -132,14 +132,14 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
         qualification_state: "Qualified",
         review_state: "Review Required",
         approval_state: "Approval Required",
-        followup_state: "Follow-Up Complete",
-        selected_cta: "trust_only",
+        followup_state: "new",
+        selected_cta: "course_awareness_cta",
         structured_post: {
-            raw_text: "Licensed Chiropractor seeking to add digital rehabilitation workflows into my private practice.",
+            raw_text: "Licensed Chiropractor seeking to add digital rehabilitation workflows and nutrition education to support patient conversations in my clinic.",
             classification: {
                 primary_category: "TRANSITION_SEEKER",
                 signal_type: "chiropractic_workflow",
-                context_tags: ["personal_exploration_candidate"]
+                context_tags: ["gime_chiro_fit", "personal_exploration_candidate"]
             },
             governance_route: {
                 queue: "demo_synthetic_queue"
@@ -159,8 +159,8 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
                 discussion_source_type: "comment",
                 discussion_depth: 2,
                 source_type: "transition_seeker",
-                qualification_reason: "Licensed chiropractor looking to pivot into digital wellness pathways.",
-                matched_phrase: "rehabilitation workflows",
+                qualification_reason: "Healthcare professional interested in nutrition conversations.",
+                matched_phrase: "patient conversations",
                 author_handle: "chiro_steve_demo"
             }
         },
@@ -169,20 +169,20 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
         }
     },
     {
-        signal_id: "demo-sig-medfit",
-        correlation_id: "corr-demo-sig-medfit",
+        signal_id: "demo-sig-burnedout",
+        correlation_id: "corr-demo-sig-burnedout",
         is_synthetic: true,
         qualification_state: "Review Required",
         review_state: "Review Required",
         approval_state: "Approval Required",
-        followup_state: "Follow-Up Complete",
-        selected_cta: "trust_only",
+        followup_state: "follow_up_needed",
+        selected_cta: "educational_cta",
         structured_post: {
-            raw_text: "Medical clinic assistant asking if they can provide nutritional consulting packages under current practice guidelines.",
+            raw_text: "Beside nursing has left me completely burned out. I am looking for safe education resources to transition out of hospital clinical work.",
             classification: {
                 primary_category: "HELP_SEEKER",
-                signal_type: "nutritional_consulting",
-                context_tags: ["help_seeking_candidate"]
+                signal_type: "burnout_transition",
+                context_tags: ["gime_burnout_fit", "help_seeking_candidate", "burnout_language"]
             },
             governance_route: {
                 queue: "demo_synthetic_queue"
@@ -193,18 +193,104 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
             priority_tier: "MEDIUM",
             source: {
                 platform: "synthetic_source",
-                username: "assistant_anna_demo",
+                username: "burned_out_tech",
                 author_id: "synthetic-author-003",
-                source_url: "demo-routing://synthetic-payload/medfit",
+                source_url: "demo-routing://synthetic-payload/burnedout",
                 timestamp: new Date().toISOString()
             },
             discussion_metadata: {
                 discussion_source_type: "reply",
                 discussion_depth: 1,
                 source_type: "help_seeker",
-                qualification_reason: "Clinical staff inquiring about scope-of-practice and consulting guidelines.",
-                matched_phrase: "practice guidelines",
-                author_handle: "assistant_anna_demo"
+                qualification_reason: "Healthcare professional expressing burnout or transition curiosity.",
+                matched_phrase: "burned out",
+                author_handle: "burned_out_tech"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-sideincome",
+        correlation_id: "corr-demo-sig-sideincome",
+        is_synthetic: true,
+        qualification_state: "Qualified",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "follow_up_needed",
+        selected_cta: "course_awareness_cta",
+        structured_post: {
+            raw_text: "Registered nurse exploring realistic ways to expand income part-time using clinical nutrition training. Is this feasible?",
+            classification: {
+                primary_category: "HELP_SEEKER",
+                signal_type: "side_income",
+                context_tags: ["gime_sideincome_fit", "commercial_intent_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 4
+            },
+            priority_tier: "MEDIUM",
+            source: {
+                platform: "synthetic_source",
+                username: "side_income_nurse",
+                author_id: "synthetic-author-005",
+                source_url: "demo-routing://synthetic-payload/sideincome",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "comment",
+                discussion_depth: 2,
+                source_type: "help_seeker",
+                qualification_reason: "Professional exploring expanding income using nutrition education.",
+                matched_phrase: "expand income",
+                author_handle: "side_income_nurse"
+            }
+        },
+        approval_status: {
+            state: "Approval Required"
+        }
+    },
+    {
+        signal_id: "demo-sig-certseeker",
+        correlation_id: "corr-demo-sig-certseeker",
+        is_synthetic: true,
+        qualification_state: "Qualified",
+        review_state: "Review Required",
+        approval_state: "Approval Required",
+        followup_state: "new",
+        selected_cta: "course_awareness_cta",
+        structured_post: {
+            raw_text: "Which nutrition certification or course is appropriate for a therapist looking to pivot into health consulting?",
+            classification: {
+                primary_category: "HELP_SEEKER",
+                signal_type: "certification_inquiry",
+                context_tags: ["gime_certseeker_fit", "recommendation_seeking_candidate"]
+            },
+            governance_route: {
+                queue: "demo_synthetic_queue"
+            },
+            signal_score: {
+                score: 6
+            },
+            priority_tier: "MEDIUM",
+            source: {
+                platform: "synthetic_source",
+                username: "cert_seeker_pt",
+                author_id: "synthetic-author-008",
+                source_url: "demo-routing://synthetic-payload/certseeker",
+                timestamp: new Date().toISOString()
+            },
+            discussion_metadata: {
+                discussion_source_type: "comment",
+                discussion_depth: 1,
+                source_type: "help_seeker",
+                qualification_reason: "User explicitly asking which nutrition course or certification is appropriate.",
+                matched_phrase: "nutrition certification",
+                author_handle: "cert_seeker_pt"
             }
         },
         approval_status: {
@@ -218,14 +304,14 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
         qualification_state: "Suppressed",
         review_state: "Reviewed",
         approval_state: "Approval Complete",
-        followup_state: "Follow-Up Complete",
+        followup_state: "not_fit",
         selected_cta: "trust_only",
         structured_post: {
-            raw_text: "Direct supplement seller promoting proprietary fat-loss pills with guaranteed results.",
+            raw_text: "Direct supplement seller promoting proprietary weight loss products. Message me to join my team and start earning!",
             classification: {
                 primary_category: "UNCLASSIFIED",
                 signal_type: "supplement_sales",
-                context_tags: ["commercial_seller_suppressed"]
+                context_tags: ["gime_seller_fit", "commercial_seller_suppressed"]
             },
             governance_route: {
                 queue: "demo_synthetic_queue"
@@ -245,52 +331,9 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
                 discussion_source_type: "comment",
                 discussion_depth: 1,
                 source_type: "creator_seller",
-                qualification_reason: "Unqualified seller promoting health products with income/potency claims.",
-                matched_phrase: "fat-loss pills",
+                qualification_reason: "Supplements promoter; excluded from GIME enrollment CTA workflow.",
+                matched_phrase: "supplement seller",
                 author_handle: "supplement_bob_demo"
-            }
-        },
-        approval_status: {
-            state: "Approval Required"
-        }
-    },
-    {
-        signal_id: "demo-sig-exagincome",
-        correlation_id: "corr-demo-sig-exagincome",
-        is_synthetic: true,
-        qualification_state: "Review Required",
-        review_state: "Review Required",
-        approval_state: "Approval Required",
-        followup_state: "Follow-Up Complete",
-        selected_cta: "trust_only",
-        structured_post: {
-            raw_text: "Independent practitioner looking for ways to double clinical revenue within 30 days using automated client upselling.",
-            classification: {
-                primary_category: "HELP_SEEKER",
-                signal_type: "revenue_growth",
-                context_tags: ["commercial_intent_candidate"]
-            },
-            governance_route: {
-                queue: "demo_synthetic_queue"
-            },
-            signal_score: {
-                score: 4
-            },
-            priority_tier: "MEDIUM",
-            source: {
-                platform: "synthetic_source",
-                username: "practitioner_paul_demo",
-                author_id: "synthetic-author-005",
-                source_url: "demo-routing://synthetic-payload/exagincome",
-                timestamp: new Date().toISOString()
-            },
-            discussion_metadata: {
-                discussion_source_type: "comment",
-                discussion_depth: 2,
-                source_type: "help_seeker",
-                qualification_reason: "Aggressive business expansion model requiring review for professional policy alignment.",
-                matched_phrase: "double clinical revenue",
-                author_handle: "practitioner_paul_demo"
             }
         },
         approval_status: {
@@ -304,14 +347,14 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
         qualification_state: "Compliance Review Required",
         review_state: "Review Required",
         approval_state: "Approval Required",
-        followup_state: "Follow-Up Complete",
+        followup_state: "follow_up_needed",
         selected_cta: "trust_only",
         structured_post: {
-            raw_text: "Provider requesting advice on off-label prescription advertising guidelines and HIPAA override practices.",
+            raw_text: "Healthcare worker offering tips on how to cure type 2 diabetes with off-label prescription plans and override HIPAA rules.",
             classification: {
                 primary_category: "COMPLIANCE_RISK",
                 signal_type: "advertising_guidelines",
-                context_tags: ["compliance_risk_candidate"]
+                context_tags: ["gime_compliance_fit", "compliance_risk_candidate"]
             },
             governance_route: {
                 queue: "demo_synthetic_queue"
@@ -331,52 +374,9 @@ export const SYNTHETIC_DEMO_SIGNALS: Signal[] = [
                 discussion_source_type: "reply",
                 discussion_depth: 1,
                 source_type: "help_seeker",
-                qualification_reason: "High compliance risk: request details on HIPAA overrides and off-label promotions.",
+                qualification_reason: "Compliance-risk: User expressing disease-treatment claims and HIPAA override.",
                 matched_phrase: "HIPAA override",
                 author_handle: "dr_clara_demo"
-            }
-        },
-        approval_status: {
-            state: "Approval Required"
-        }
-    },
-    {
-        signal_id: "demo-sig-followup",
-        correlation_id: "corr-demo-sig-followup",
-        is_synthetic: true,
-        qualification_state: "Follow-Up Required",
-        review_state: "Review Required",
-        approval_state: "Approval Required",
-        followup_state: "Follow-Up Required",
-        selected_cta: "trust_only",
-        structured_post: {
-            raw_text: "Patient transition inquiry requesting immediate follow-up on clinical referral options.",
-            classification: {
-                primary_category: "TRANSITION_SEEKER",
-                signal_type: "referral_options",
-                context_tags: ["follow_up_candidate"]
-            },
-            governance_route: {
-                queue: "demo_synthetic_queue"
-            },
-            signal_score: {
-                score: 8
-            },
-            priority_tier: "HIGH",
-            source: {
-                platform: "synthetic_source",
-                username: "patient_pat_demo",
-                author_id: "synthetic-author-007",
-                source_url: "demo-routing://synthetic-payload/followup",
-                timestamp: new Date().toISOString()
-            },
-            discussion_metadata: {
-                discussion_source_type: "comment",
-                discussion_depth: 1,
-                source_type: "help_seeker",
-                qualification_reason: "Critical follow-up requested by transitioning patient.",
-                matched_phrase: "immediate follow-up",
-                author_handle: "patient_pat_demo"
             }
         },
         approval_status: {

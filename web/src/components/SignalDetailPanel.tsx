@@ -220,18 +220,26 @@ export const SignalDetailPanel: React.FC<PanelProps> = ({ signal, onClose, mapCa
                                     <span className="text-[9px] text-slate-500 uppercase font-bold block mb-1">Follow-Up State</span>
                                     <button
                                         onClick={() => {
-                                            const states = ["Follow-Up Required", "Follow-Up Pending", "Follow-Up Complete"];
+                                            const states = ["new", "reviewed", "needs_response", "response_drafted", "waiting", "follow_up_needed", "not_fit", "closed"];
                                             const next = states[(states.indexOf(followupState) + 1) % states.length];
                                             setFollowupState(next);
                                             signal.followup_state = next;
                                         }}
                                         className={`px-3 py-1.5 rounded-lg border font-bold uppercase text-[10px] w-full text-left transition-all ${
-                                            followupState === 'Follow-Up Complete' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                            followupState === 'Follow-Up Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' :
+                                            followupState === 'closed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                            followupState === 'follow_up_needed' || followupState === 'needs_response' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse' :
+                                            followupState === 'not_fit' ? 'bg-slate-800 text-slate-500 border-slate-700 line-through' :
                                             'bg-pink-500/10 text-pink-400 border-pink-500/20'
                                         }`}
                                     >
-                                        {followupState}
+                                        {followupState === 'new' ? 'New' :
+                                         followupState === 'reviewed' ? 'Reviewed' :
+                                         followupState === 'needs_response' ? 'Needs Response' :
+                                         followupState === 'response_drafted' ? 'Response Drafted' :
+                                         followupState === 'waiting' ? 'Waiting' :
+                                         followupState === 'follow_up_needed' ? 'Follow-Up Needed' :
+                                         followupState === 'not_fit' ? 'Not Fit' :
+                                         followupState === 'closed' ? 'Closed' : followupState}
                                     </button>
                                 </div>
 

@@ -26,10 +26,12 @@ export const ContinuityNoteBox: React.FC<Props> = ({
   const stateOptions: { value: EngagementState; label: string }[] = [
     { value: 'new', label: 'New' },
     { value: 'reviewed', label: 'Reviewed' },
-    { value: 'engaged', label: 'Engaged' },
-    { value: 'follow_up_needed', label: 'Follow-up Needed' },
-    { value: 'closed', label: 'Closed' },
-    { value: 'disqualified', label: 'Disqualified' }
+    { value: 'needs_response', label: 'Needs Response' },
+    { value: 'response_drafted', label: 'Response Drafted' },
+    { value: 'waiting', label: 'Waiting' },
+    { value: 'follow_up_needed', label: 'Follow-Up Needed' },
+    { value: 'not_fit', label: 'Not Fit' },
+    { value: 'closed', label: 'Closed' }
   ];
 
   return (
